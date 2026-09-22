@@ -1127,15 +1127,20 @@
   <!-- ЛОГИКА ПРИЛОЖЕНИЯ -->
   <script>
     // --- 1. КОНФИГУРАЦИЯ ---
-    const DEFAULT_N8N_URL = 'https://YOUR_N8N_DOMAIN/webhook';
+    const DEFAULT_N8N_URL = 'https://n8auto.ru/webhook';
     
     function getApiUrl() {
       const urlParam = new URLSearchParams(window.location.search).get('api');
       if (urlParam) {
-        localStorage.setItem('n8n_api_base', urlParam.replace(/\/$/, ''));
-        return urlParam.replace(/\/$/, '');
+        const clean = urlParam.replace(/\/$/, '');
+        localStorage.setItem('n8n_api_base', clean);
+        return clean;
       }
-      return localStorage.getItem('n8n_api_base') || DEFAULT_N8N_URL;
+      const saved = localStorage.getItem('n8n_api_base');
+      if (saved && !saved.includes('YOUR_N8N_DOMAIN') && !saved.includes('your-n8n-domain')) {
+        return saved;
+      }
+      return DEFAULT_N8N_URL;
     }
 
     let API_BASE_URL = getApiUrl();
@@ -1911,7 +1916,21 @@
     // СТАРТ
     window.addEventListener('DOMContentLoaded', () => {
       initFiltersUI();
-      fetchListings(1, false);
+      
+      // Deep-linking: вкладка подписок (?tab=subscriptions или #subscriptions)
+      const urlParams = new URLSearchParams(window.location.search);
+      const startTab = urlParams.get('tab') || (window.location.hash === '#subscriptions' ? 'subscriptions' : null);
+      if (startTab === 'subscriptions') {
+        switchTab('viewSubscriptions');
+      } else {
+        fetchListings(1, false);
+      }
+
+      // Deep-linking: конкретное объявление (#listing_123 или ?listing=123)
+      const listingIdParam = urlParams.get('listing') || (window.location.hash.startsWith('#listing_') ? window.location.hash.replace('#listing_', '') : null);
+      if (listingIdParam) {
+        setTimeout(() => openListingDetail(parseInt(listingIdParam, 10)), 300);
+      }
     });
   </script>
 </body>
