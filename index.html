@@ -1441,7 +1441,7 @@
       }
     }
 
-    function renderFeed(items, append = false) {
+    async function renderFeed(items, append = false) {
       const feed = document.getElementById('listingsFeed');
       if (!items || items.length === 0) {
         if (!append) {
@@ -1460,11 +1460,20 @@
       if (!append) {
         feed.innerHTML = '';
       }
-      items.forEach(item => {
-        const card = createListingCard(item);
-        feed.appendChild(card);
-      });
+
+      // Батчи по 3 карточки с паузой 500мс — фото загружаются вместе с карточкой
+      const BATCH_SIZE = 3;
+      const BATCH_DELAY = 500;
+      for (let i = 0; i < items.length; i += BATCH_SIZE) {
+        items.slice(i, i + BATCH_SIZE).forEach(item => {
+          feed.appendChild(createListingCard(item));
+        });
+        if (i + BATCH_SIZE < items.length) {
+          await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
+        }
+      }
     }
+
 
     function createListingCard(item) {
       const card = document.createElement('article');
@@ -1510,16 +1519,12 @@
         </div>
       `;
 
-      // Ленивая загрузка первого фото (только когда карточка на экране)
+      // Грузим фото сразу — очередь (MAX_CONCURRENT=2) регулирует нагрузку
       const cardPhotoId = item.photo_file_id || (Array.isArray(item.photos) && item.photos[0]) || null;
       if (cardPhotoId) {
         card.setAttribute('data-photo-id', cardPhotoId);
         card.setAttribute('data-item-id', item.id);
-        if (cardPhotoObserver) {
-          cardPhotoObserver.observe(card);
-        } else {
-          triggerCardPhotoLoad(card);
-        }
+        triggerCardPhotoLoad(card);
       } else {
         const phEl = card.querySelector(`#ph-${item.id} span`);
         if (phEl) phEl.textContent = 'Нет фото';
