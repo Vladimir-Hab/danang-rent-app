@@ -1278,21 +1278,112 @@
       return await res.json();
     }
 
-    // Получение прямой ссылки на фото через n8n-прокси (токен хранится только на сервере)
-    async function getListingPhotoUrl(fileId) {
-      if (!fileId) return null;
-      if (photoCache[fileId]) return photoCache[fileId];
+    // --- 4. КЭШ И УМНАЯ ОЧЕРЕДЬ ЗАГРУЗКИ ФОТО ---
+    const photoCache = {};
+    const pendingPhotoPromises = {};
+    let activePhotoRequests = 0;
+    const MAX_CONCURRENT_PHOTO_REQUESTS = 2; // Максимум 2 одновременных запроса к n8n/Telegram
+    const photoQueue = [];
 
-      try {
-        const data = await apiPost('/listing-photo', { photo_file_id: fileId });
-        if (data && data.url) {
-          photoCache[fileId] = data.url;
-          return data.url;
-        }
-      } catch (e) {
-        console.warn('Не удалось загрузить фото:', e);
+    function processPhotoQueue() {
+      if (activePhotoRequests >= MAX_CONCURRENT_PHOTO_REQUESTS || photoQueue.length === 0) {
+        return;
       }
-      return null;
+
+      const item = photoQueue.shift();
+      activePhotoRequests++;
+
+      apiPost('/listing-photo', { photo_file_id: item.fileId })
+        .then(data => {
+          if (data && data.url) {
+            photoCache[item.fileId] = data.url;
+            try { sessionStorage.setItem('ph_' + item.fileId.slice(-30), data.url); } catch (e) {}
+            item.resolve(data.url);
+          } else {
+            item.resolve(null);
+          }
+        })
+        .catch(err => {
+          console.warn('Ошибка загрузки фото:', err);
+          item.resolve(null);
+        })
+        .finally(() => {
+          activePhotoRequests--;
+          delete pendingPhotoPromises[item.fileId];
+          processPhotoQueue();
+        });
+    }
+
+    function getListingPhotoUrl(fileId, isPriority = false) {
+      if (!fileId) return Promise.resolve(null);
+      if (photoCache[fileId]) return Promise.resolve(photoCache[fileId]);
+
+      // Проверка в sessionStorage
+      try {
+        const cached = sessionStorage.getItem('ph_' + fileId.slice(-30));
+        if (cached) {
+          photoCache[fileId] = cached;
+          return Promise.resolve(cached);
+        }
+      } catch (e) {}
+
+      if (pendingPhotoPromises[fileId]) {
+        return pendingPhotoPromises[fileId];
+      }
+
+      const promise = new Promise((resolve, reject) => {
+        const queueItem = { fileId, resolve, reject };
+        if (isPriority) {
+          photoQueue.unshift(queueItem); // Высокий приоритет (для открытой карточки)
+        } else {
+          photoQueue.push(queueItem);
+        }
+        processPhotoQueue();
+      });
+
+      pendingPhotoPromises[fileId] = promise;
+      return promise;
+    }
+
+    // Ленивая загрузка фото для карточек (только когда они видны на экране)
+    let cardPhotoObserver = null;
+    function initCardPhotoObserver() {
+      if ('IntersectionObserver' in window) {
+        cardPhotoObserver = new IntersectionObserver((entries, observer) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const card = entry.target;
+              observer.unobserve(card);
+              triggerCardPhotoLoad(card);
+            }
+          });
+        }, {
+          rootMargin: '250px 0px' // Начинаем загрузку за 250px до появления в кадре
+        });
+      }
+    }
+
+    function triggerCardPhotoLoad(card) {
+      const photoId = card.getAttribute('data-photo-id');
+      const itemId = card.getAttribute('data-item-id');
+      if (!photoId || !itemId) return;
+
+      getListingPhotoUrl(photoId).then(url => {
+        const imgEl = card.querySelector(`#img-${itemId}`);
+        const phEl = card.querySelector(`#ph-${itemId}`);
+        if (url) {
+          if (imgEl && phEl) {
+            imgEl.src = url;
+            imgEl.onload = () => {
+              phEl.style.display = 'none';
+              imgEl.style.display = 'block';
+            };
+          }
+        } else {
+          const phSpan = card.querySelector(`#ph-${itemId} span`);
+          if (phSpan) phSpan.textContent = 'Нет фото';
+        }
+      });
     }
 
     // --- 5. КАТАЛОГ И БЕСКОНЕЧНЫЙ СКРОЛЛ ---
@@ -1418,25 +1509,16 @@
         </div>
       `;
 
-      // Загрузка первого фото асинхронно
+      // Ленивая загрузка первого фото (только когда карточка на экране)
       const cardPhotoId = item.photo_file_id || (Array.isArray(item.photos) && item.photos[0]) || null;
       if (cardPhotoId) {
-        getListingPhotoUrl(cardPhotoId).then(url => {
-          if (url) {
-            const imgEl = card.querySelector(`#img-${item.id}`);
-            const phEl = card.querySelector(`#ph-${item.id}`);
-            if (imgEl && phEl) {
-              imgEl.src = url;
-              imgEl.onload = () => {
-                phEl.style.display = 'none';
-                imgEl.style.display = 'block';
-              };
-            }
-          } else {
-            const phEl = card.querySelector(`#ph-${item.id} span`);
-            if (phEl) phEl.textContent = 'Нет фото';
-          }
-        });
+        card.setAttribute('data-photo-id', cardPhotoId);
+        card.setAttribute('data-item-id', item.id);
+        if (cardPhotoObserver) {
+          cardPhotoObserver.observe(card);
+        } else {
+          triggerCardPhotoLoad(card);
+        }
       } else {
         const phEl = card.querySelector(`#ph-${item.id} span`);
         if (phEl) phEl.textContent = 'Нет фото';
@@ -1557,7 +1639,7 @@
             dots.appendChild(dot);
           }
 
-          getListingPhotoUrl(pId).then(url => {
+          getListingPhotoUrl(pId, true).then(url => {
             if (url) {
               slide.innerHTML = `<img class="gallery-img" src="${url}" alt="Фото ${idx + 1}" loading="lazy">`;
             } else {
@@ -1993,6 +2075,7 @@
 
     // СТАРТ
     window.addEventListener('DOMContentLoaded', () => {
+      initCardPhotoObserver();
       initFiltersUI();
       
       // Deep-linking: вкладка подписок (?tab=subscriptions или #subscriptions)
@@ -2007,7 +2090,7 @@
       // Deep-linking: конкретное объявление (#listing_123 или ?listing=123)
       const listingIdParam = urlParams.get('listing') || (window.location.hash.startsWith('#listing_') ? window.location.hash.replace('#listing_', '') : null);
       if (listingIdParam) {
-        setTimeout(() => openListingDetail(parseInt(listingIdParam, 10)), 300);
+        setTimeout(() => openDetailScreen(parseInt(listingIdParam, 10)), 300);
       }
     });
   </script>
