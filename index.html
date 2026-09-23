@@ -1412,11 +1412,11 @@
 
         if (!append) {
           listings = items;
+          renderFeed(items, false);
         } else {
           listings = listings.concat(items);
+          renderFeed(items, true); // передаём только новые карточки
         }
-
-        renderFeed(listings);
 
         if (!hasMoreListings) {
           sentinel.textContent = listings.length > 0 ? 'Вы посмотрели все объявления' : '';
@@ -1441,21 +1441,25 @@
       }
     }
 
-    function renderFeed(items) {
+    function renderFeed(items, append = false) {
       const feed = document.getElementById('listingsFeed');
       if (!items || items.length === 0) {
-        feed.innerHTML = `
-          <div class="state-box">
-            <div class="state-box-icon">🔍</div>
-            <div class="state-box-title">Ничего не найдено</div>
-            <div class="state-box-desc">Попробуйте изменить параметры поиска или сбросить фильтры.</div>
-            <button class="btn-action-secondary" style="margin-top: 14px;" onclick="resetAllFilters()">Сбросить фильтры</button>
-          </div>
-        `;
+        if (!append) {
+          feed.innerHTML = `
+            <div class="state-box">
+              <div class="state-box-icon">🔍</div>
+              <div class="state-box-title">Ничего не найдено</div>
+              <div class="state-box-desc">Попробуйте изменить параметры поиска или сбросить фильтры.</div>
+              <button class="btn-action-secondary" style="margin-top: 14px;" onclick="resetAllFilters()">Сбросить фильтры</button>
+            </div>
+          `;
+        }
         return;
       }
 
-      feed.innerHTML = '';
+      if (!append) {
+        feed.innerHTML = '';
+      }
       items.forEach(item => {
         const card = createListingCard(item);
         feed.appendChild(card);
@@ -2070,26 +2074,24 @@
 
     observer.observe(document.getElementById('infiniteScrollSentinel'));
 
-    // СТАРТ
-    window.addEventListener('DOMContentLoaded', () => {
-      initCardPhotoObserver();
-      initFiltersUI();
-      
-      // Deep-linking: вкладка подписок (?tab=subscriptions или #subscriptions)
-      const urlParams = new URLSearchParams(window.location.search);
-      const startTab = urlParams.get('tab') || (window.location.hash === '#subscriptions' ? 'subscriptions' : null);
-      if (startTab === 'subscriptions') {
-        switchTab('viewSubscriptions');
-      } else {
-        fetchListings(1, false);
-      }
+    // СТАРТ (скрипт в конце body — DOM уже готов)
+    initCardPhotoObserver();
+    initFiltersUI();
 
-      // Deep-linking: конкретное объявление (#listing_123 или ?listing=123)
-      const listingIdParam = urlParams.get('listing') || (window.location.hash.startsWith('#listing_') ? window.location.hash.replace('#listing_', '') : null);
-      if (listingIdParam) {
-        setTimeout(() => openDetailScreen(parseInt(listingIdParam, 10)), 300);
-      }
-    });
+    // Deep-linking: вкладка подписок (?tab=subscriptions или #subscriptions)
+    const urlParams = new URLSearchParams(window.location.search);
+    const startTab = urlParams.get('tab') || (window.location.hash === '#subscriptions' ? 'subscriptions' : null);
+    if (startTab === 'subscriptions') {
+      switchTab('viewSubscriptions');
+    } else {
+      fetchListings(1, false);
+    }
+
+    // Deep-linking: конкретное объявление (#listing_123 или ?listing=123)
+    const listingIdParam = urlParams.get('listing') || (window.location.hash.startsWith('#listing_') ? window.location.hash.replace('#listing_', '') : null);
+    if (listingIdParam) {
+      setTimeout(() => openDetailScreen(parseInt(listingIdParam, 10)), 300);
+    }
   </script>
 </body>
 </html>
