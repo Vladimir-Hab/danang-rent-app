@@ -1275,40 +1275,43 @@
       return await res.json();
     }
 
-    // --- 4. КЭШ И УМНАЯ ОЧЕРЕДЬ ЗАГРУЗКИ ФОТО ---
+    // --- 4. КЭШ И ОЧЕРЕДЬ ЗАГРУЗКИ ФОТО ---
     const photoCache = {};
     const pendingPhotoPromises = {};
     let activePhotoRequests = 0;
-    const MAX_CONCURRENT_PHOTO_REQUESTS = 2; // Максимум 2 одновременных запроса к n8n/Telegram
+    const MAX_CONCURRENT_PHOTO_REQUESTS = 6; // 6 параллельных запросов
+    const PHOTO_TIMEOUT_MS = 8000;           // timeout 8 сек на каждый запрос
     const photoQueue = [];
 
     function processPhotoQueue() {
-      if (activePhotoRequests >= MAX_CONCURRENT_PHOTO_REQUESTS || photoQueue.length === 0) {
-        return;
-      }
+      while (activePhotoRequests < MAX_CONCURRENT_PHOTO_REQUESTS && photoQueue.length > 0) {
+        const item = photoQueue.shift();
+        activePhotoRequests++;
 
-      const item = photoQueue.shift();
-      activePhotoRequests++;
+        // Запрос с таймаутом — если n8n завис, слот освободится через 8 сек
+        const fetchPromise = apiPost('/listing-photo', { photo_file_id: item.fileId });
+        const timeoutPromise = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), PHOTO_TIMEOUT_MS));
 
-      apiPost('/listing-photo', { photo_file_id: item.fileId })
-        .then(data => {
-          if (data && data.url) {
-            photoCache[item.fileId] = data.url;
-            try { sessionStorage.setItem('ph_' + item.fileId.slice(-30), data.url); } catch (e) {}
-            item.resolve(data.url);
-          } else {
+        Promise.race([fetchPromise, timeoutPromise])
+          .then(data => {
+            if (data && data.url) {
+              photoCache[item.fileId] = data.url;
+              try { sessionStorage.setItem('ph_' + item.fileId.slice(-30), data.url); } catch (e) {}
+              item.resolve(data.url);
+            } else {
+              item.resolve(null);
+            }
+          })
+          .catch(err => {
+            console.warn('Фото:', item.fileId.slice(-8), err.message);
             item.resolve(null);
-          }
-        })
-        .catch(err => {
-          console.warn('Ошибка загрузки фото:', err);
-          item.resolve(null);
-        })
-        .finally(() => {
-          activePhotoRequests--;
-          delete pendingPhotoPromises[item.fileId];
-          processPhotoQueue();
-        });
+          })
+          .finally(() => {
+            activePhotoRequests--;
+            delete pendingPhotoPromises[item.fileId];
+            processPhotoQueue(); // продолжаем очередь
+          });
+      }
     }
 
     function getListingPhotoUrl(fileId, isPriority = false) {
@@ -1412,10 +1415,10 @@
 
         if (!append) {
           listings = items;
-          renderFeed(items, false);
+          await renderFeed(items, false);
         } else {
           listings = listings.concat(items);
-          renderFeed(items, true); // передаём только новые карточки
+          await renderFeed(items, true);
         }
 
         if (!hasMoreListings) {
