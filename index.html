@@ -1078,7 +1078,8 @@
       <div class="form-section">
         <div class="form-title">Стоимость</div>
         <div class="segmented-tabs" id="fCurrencyTabs">
-          <button type="button" class="seg-tab active" data-val="USD">USD ($)</button>
+          <button type="button" class="seg-tab active" data-val="all">Все</button>
+          <button type="button" class="seg-tab" data-val="USD">USD ($)</button>
           <button type="button" class="seg-tab" data-val="VND">VND (₫)</button>
         </div>
         <div class="price-inputs-row">
@@ -1223,7 +1224,7 @@
       property_types: [],
       price_min: null,
       price_max: null,
-      currency: 'USD',
+      currency: 'all',
       price_period: 'month',
       freshness: 'all',
       resale: 'all' // all / no_resale / only_resale
@@ -1666,6 +1667,7 @@
       activeFilter.property_types = [];
       activeFilter.price_min = null;
       activeFilter.price_max = null;
+      activeFilter.currency = 'all';
       activeFilter.freshness = 'all';
       activeFilter.resale = 'all';
 
@@ -1679,6 +1681,10 @@
       document.querySelectorAll('input[name="fType"]').forEach(c => c.checked = false);
       document.getElementById('fPriceMin').value = '';
       document.getElementById('fPriceMax').value = '';
+
+      document.querySelectorAll('#fCurrencyTabs .seg-tab').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-val') === 'all');
+      });
 
       updateFilterBadge();
       fetchListings(1, false);
@@ -1718,7 +1724,7 @@
 
       activeFilter.price_min = document.getElementById('fPriceMin').value ? Number(document.getElementById('fPriceMin').value) : null;
       activeFilter.price_max = document.getElementById('fPriceMax').value ? Number(document.getElementById('fPriceMax').value) : null;
-      activeFilter.currency = getTabVal('fCurrencyTabs') || 'USD';
+      activeFilter.currency = getTabVal('fCurrencyTabs') || 'all';
       activeFilter.price_period = getTabVal('fPeriodTabs') || 'month';
       activeFilter.freshness = getTabVal('fFreshnessTabs') || 'all';
       activeFilter.resale = getTabVal('fResaleTabs') || 'all';
