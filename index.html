@@ -1279,37 +1279,46 @@
     const photoCache = {};
     const pendingPhotoPromises = {};
     let activePhotoRequests = 0;
-    const MAX_CONCURRENT_PHOTO_REQUESTS = 6; // 6 параллельных запросов
-    const PHOTO_TIMEOUT_MS = 8000;           // timeout 8 сек на каждый запрос
+    const MAX_CONCURRENT = 4;
+    const PHOTO_TIMEOUT_MS = 8000;
     const photoQueue = [];
 
+    // Сбросить очередь (при смене фильтров — отменяем ненужные запросы)
+    function clearPhotoQueue() {
+      while (photoQueue.length > 0) {
+        const item = photoQueue.pop();
+        item.resolve(null);
+        delete pendingPhotoPromises[item.fileId];
+      }
+    }
+
     function processPhotoQueue() {
-      while (activePhotoRequests < MAX_CONCURRENT_PHOTO_REQUESTS && photoQueue.length > 0) {
+      while (activePhotoRequests < MAX_CONCURRENT && photoQueue.length > 0) {
         const item = photoQueue.shift();
         activePhotoRequests++;
 
-        // Запрос с таймаутом — если n8n завис, слот освободится через 8 сек
-        const fetchPromise = apiPost('/listing-photo', { photo_file_id: item.fileId });
-        const timeoutPromise = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), PHOTO_TIMEOUT_MS));
+        const timeoutPromise = new Promise((_, rej) =>
+          setTimeout(() => rej(new Error('timeout')), PHOTO_TIMEOUT_MS)
+        );
 
-        Promise.race([fetchPromise, timeoutPromise])
+        Promise.race([apiPost('/listing-photo', { photo_file_id: item.fileId }), timeoutPromise])
           .then(data => {
             if (data && data.url) {
               photoCache[item.fileId] = data.url;
-              try { sessionStorage.setItem('ph_' + item.fileId.slice(-30), data.url); } catch (e) {}
+              try { sessionStorage.setItem('ph_' + item.fileId.slice(-30), data.url); } catch(e) {}
               item.resolve(data.url);
             } else {
               item.resolve(null);
             }
           })
           .catch(err => {
-            console.warn('Фото:', item.fileId.slice(-8), err.message);
+            console.warn('Photo err:', item.fileId.slice(-8), err.message);
             item.resolve(null);
           })
           .finally(() => {
             activePhotoRequests--;
             delete pendingPhotoPromises[item.fileId];
-            processPhotoQueue(); // продолжаем очередь
+            processPhotoQueue();
           });
       }
     }
@@ -1318,23 +1327,17 @@
       if (!fileId) return Promise.resolve(null);
       if (photoCache[fileId]) return Promise.resolve(photoCache[fileId]);
 
-      // Проверка в sessionStorage
       try {
         const cached = sessionStorage.getItem('ph_' + fileId.slice(-30));
-        if (cached) {
-          photoCache[fileId] = cached;
-          return Promise.resolve(cached);
-        }
-      } catch (e) {}
+        if (cached) { photoCache[fileId] = cached; return Promise.resolve(cached); }
+      } catch(e) {}
 
-      if (pendingPhotoPromises[fileId]) {
-        return pendingPhotoPromises[fileId];
-      }
+      if (pendingPhotoPromises[fileId]) return pendingPhotoPromises[fileId];
 
-      const promise = new Promise((resolve, reject) => {
-        const queueItem = { fileId, resolve, reject };
+      const promise = new Promise((resolve) => {
+        const queueItem = { fileId, resolve };
         if (isPriority) {
-          photoQueue.unshift(queueItem); // Высокий приоритет (для открытой карточки)
+          photoQueue.unshift(queueItem);
         } else {
           photoQueue.push(queueItem);
         }
@@ -1345,22 +1348,21 @@
       return promise;
     }
 
-    // Ленивая загрузка фото для карточек (только когда они видны на экране)
+    // --- IntersectionObserver: загружаем фото только когда карточка видна ---
     let cardPhotoObserver = null;
+
     function initCardPhotoObserver() {
-      if ('IntersectionObserver' in window) {
-        cardPhotoObserver = new IntersectionObserver((entries, observer) => {
-          entries.forEach(entry => {
-            if (entry.isIntersecting) {
-              const card = entry.target;
-              observer.unobserve(card);
-              triggerCardPhotoLoad(card);
-            }
-          });
-        }, {
-          rootMargin: '250px 0px' // Начинаем загрузку за 250px до появления в кадре
+      if (!('IntersectionObserver' in window)) return;
+      // Уничтожаем старый если есть
+      if (cardPhotoObserver) cardPhotoObserver.disconnect();
+
+      cardPhotoObserver = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+          obs.unobserve(entry.target);
+          triggerCardPhotoLoad(entry.target);
         });
-      }
+      }, { rootMargin: '400px 0px' }); // начинаем за 400px до появления
     }
 
     function triggerCardPhotoLoad(card) {
@@ -1370,18 +1372,14 @@
 
       getListingPhotoUrl(photoId).then(url => {
         const imgEl = card.querySelector(`#img-${itemId}`);
-        const phEl = card.querySelector(`#ph-${itemId}`);
+        const phEl  = card.querySelector(`#ph-${itemId}`);
+        if (!imgEl || !phEl) return;
         if (url) {
-          if (imgEl && phEl) {
-            imgEl.src = url;
-            imgEl.onload = () => {
-              phEl.style.display = 'none';
-              imgEl.style.display = 'block';
-            };
-          }
+          imgEl.src = url;
+          imgEl.onload = () => { phEl.style.display = 'none'; imgEl.style.display = 'block'; };
+          imgEl.onerror = () => { const s = phEl.querySelector('span'); if (s) s.textContent = 'Нет фото'; };
         } else {
-          const phSpan = card.querySelector(`#ph-${itemId} span`);
-          if (phSpan) phSpan.textContent = 'Нет фото';
+          const s = phEl.querySelector('span'); if (s) s.textContent = 'Нет фото';
         }
       });
     }
@@ -1394,9 +1392,12 @@
       const sentinel = document.getElementById('infiniteScrollSentinel');
       sentinel.textContent = 'Загрузка объявлений...';
 
+      // При новом поиске — сбрасываем очередь фото чтобы не грузить старые
+      if (!append) clearPhotoQueue();
+
       try {
         const payload = {
-          page: page,
+          page,
           page_size: 15,
           search_text: activeFilter.search_text,
           districts: activeFilter.districts,
@@ -1415,17 +1416,15 @@
 
         if (!append) {
           listings = items;
-          await renderFeed(items, false);
+          renderFeed(items, false);
         } else {
           listings = listings.concat(items);
-          await renderFeed(items, true);
+          renderFeed(items, true);
         }
 
-        if (!hasMoreListings) {
-          sentinel.textContent = listings.length > 0 ? 'Вы посмотрели все объявления' : '';
-        } else {
-          sentinel.textContent = '';
-        }
+        sentinel.textContent = !hasMoreListings
+          ? (listings.length > 0 ? 'Вы посмотрели все объявления' : '')
+          : '';
       } catch (err) {
         console.error(err);
         if (!append) {
@@ -1444,8 +1443,9 @@
       }
     }
 
-    async function renderFeed(items, append = false) {
+    function renderFeed(items, append = false) {
       const feed = document.getElementById('listingsFeed');
+
       if (!items || items.length === 0) {
         if (!append) {
           feed.innerHTML = `
@@ -1460,22 +1460,11 @@
         return;
       }
 
-      if (!append) {
-        feed.innerHTML = '';
-      }
+      if (!append) feed.innerHTML = '';
 
-      // Батчи по 3 карточки с паузой 500мс — фото загружаются вместе с карточкой
-      const BATCH_SIZE = 3;
-      const BATCH_DELAY = 500;
-      for (let i = 0; i < items.length; i += BATCH_SIZE) {
-        items.slice(i, i + BATCH_SIZE).forEach(item => {
-          feed.appendChild(createListingCard(item));
-        });
-        if (i + BATCH_SIZE < items.length) {
-          await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
-        }
-      }
+      items.forEach(item => feed.appendChild(createListingCard(item)));
     }
+
 
 
     function createListingCard(item) {
@@ -1522,12 +1511,16 @@
         </div>
       `;
 
-      // Грузим фото сразу — очередь (MAX_CONCURRENT=2) регулирует нагрузку
+      // Наблюдаем карточку — фото загрузится когда она войдёт в зону видимости
       const cardPhotoId = item.photo_file_id || (Array.isArray(item.photos) && item.photos[0]) || null;
       if (cardPhotoId) {
         card.setAttribute('data-photo-id', cardPhotoId);
         card.setAttribute('data-item-id', item.id);
-        triggerCardPhotoLoad(card);
+        if (cardPhotoObserver) {
+          cardPhotoObserver.observe(card);
+        } else {
+          triggerCardPhotoLoad(card); // fallback если браузер не поддерживает IO
+        }
       } else {
         const phEl = card.querySelector(`#ph-${item.id} span`);
         if (phEl) phEl.textContent = 'Нет фото';
