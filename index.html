@@ -1253,20 +1253,16 @@
       return await res.json();
     }
 
-    // Получение прямой ссылки на фото через Telegram getFile (напрямую, без n8n)
-    const _TG_TOKEN = '8824471279:AAFMBbw29GoWaNHSdDO-Wit9K2Jjf1IlFSc';
+    // Получение прямой ссылки на фото через n8n-прокси (токен хранится только на сервере)
     async function getListingPhotoUrl(fileId) {
       if (!fileId) return null;
       if (photoCache[fileId]) return photoCache[fileId];
 
       try {
-        // Прямой запрос к Telegram Bot API (быстро и надёжно)
-        const res = await fetch(`https://api.telegram.org/bot${_TG_TOKEN}/getFile?file_id=${encodeURIComponent(fileId)}`);
-        const data = await res.json();
-        if (data.ok && data.result && data.result.file_path) {
-          const url = `https://api.telegram.org/file/bot${_TG_TOKEN}/${data.result.file_path}`;
-          photoCache[fileId] = url;
-          return url;
+        const data = await apiPost('/listing-photo', { photo_file_id: fileId });
+        if (data && data.url) {
+          photoCache[fileId] = data.url;
+          return data.url;
         }
       } catch (e) {
         console.warn('Не удалось загрузить фото:', e);
