@@ -1966,6 +1966,7 @@
           currency: activeFilter.currency,
           price_period: activeFilter.price_period,
           include_resale: activeFilter.resale !== 'no_resale',
+          is_active: true,
           notifications_enabled: true
         }, true);
 
@@ -2050,11 +2051,41 @@
       try {
         await apiPost('/subscriptions-update', {
           subscription_id: subId,
-          notifications_enabled: isEnabled,
           is_active: isEnabled
         }, true);
         triggerHaptic('light');
         showToast(isEnabled ? 'Уведомления включены' : 'Уведомления отключены');
+      } catch (e) {
+        showToast('Ошибка: ' + e.message);
+      }
+    }
+
+    // Применить сохранённый поиск (кнопка «Показать» на карточке подписки)
+    async function applySavedSearch(subId) {
+      try {
+        const subs = await apiPost('/subscriptions-list', {}, true);
+        const list = Array.isArray(subs) ? subs : (subs.data || []);
+        const sub = list.find(s => s.id === subId);
+        if (!sub) { showToast('Подписка не найдена'); return; }
+
+        // Применяем параметры подписки в activeFilter
+        activeFilter.districts = parseArray(sub.districts);
+        activeFilter.property_types = parseArray(sub.property_types);
+        activeFilter.price_min = sub.price_min || null;
+        activeFilter.price_max = sub.price_max || null;
+        activeFilter.currency = sub.currency || 'all';
+        activeFilter.price_period = sub.price_period || 'month';
+        activeFilter.resale = sub.include_resale === false ? 'no_resale' : 'all';
+        activeFilter.freshness = 'all';
+        activeFilter.search_text = '';
+
+        // Переключаемся в каталог с применёнными фильтрами
+        switchTab('viewCatalog');
+        currentPage = 1;
+        updateFilterBadge();
+        fetchListings(1, false);
+        triggerHaptic('success');
+        showToast(`Показываем: ${sub.label || 'Сохранённый поиск'}`);
       } catch (e) {
         showToast('Ошибка: ' + e.message);
       }
