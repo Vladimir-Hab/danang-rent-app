@@ -1272,7 +1272,16 @@
       if (!res.ok) {
         throw new Error(`Ошибка сервера (${res.status})`);
       }
-      return await res.json();
+      const text = await res.text();
+      if (!text || !text.trim()) {
+        return [];
+      }
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        console.warn('Response is not valid JSON:', text);
+        return [];
+      }
     }
 
     // --- 4. КЭШ И УМНАЯ ОЧЕРЕДЬ ЗАГРУЗКИ ФОТО ---
