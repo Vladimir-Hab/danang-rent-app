@@ -1961,9 +1961,32 @@
 
     // --- 8. СОХРАНЁННЫЕ ПОИСКИ (ПОДПИСКИ) ---
     async function saveCurrentSearchAsSubscription() {
-      const defaultName = activeFilter.districts.length > 0 ? `Жильё в ${activeFilter.districts.join(', ')}` : 'Поиск жилья';
-      const label = window.prompt('Название для этого поиска (подписки):', defaultName);
-      if (!label) return;
+      let nameParts = [];
+      if (activeFilter.property_types && activeFilter.property_types.length > 0) {
+        nameParts.push(activeFilter.property_types.map(t => PROPERTY_TYPES.find(p => p.id === t)?.label || t).join(', '));
+      } else {
+        nameParts.push('Жильё');
+      }
+      if (activeFilter.districts && activeFilter.districts.length > 0) {
+        nameParts.push('в ' + activeFilter.districts.join(', '));
+      }
+      if (activeFilter.price_max) {
+        const curr = activeFilter.currency === 'VND' ? '₫' : '$';
+        nameParts.push(`до ${activeFilter.price_max} ${curr}`);
+      }
+      const defaultName = nameParts.join(' ') || 'Поиск жилья';
+
+      let label = defaultName;
+      try {
+        if (typeof window.prompt === 'function') {
+          const res = window.prompt('Название для этого поиска (подписки):', defaultName);
+          if (res !== null && res.trim()) {
+            label = res.trim();
+          }
+        }
+      } catch (e) {
+        label = defaultName;
+      }
 
       try {
         await apiPost('/subscriptions-create', {
@@ -1981,6 +2004,9 @@
 
         showToast('Поиск сохранён в «Подписки»!');
         triggerHaptic('success');
+        if (document.getElementById('viewSubscriptions')?.classList.contains('active')) {
+          loadSubscriptionsTab();
+        }
       } catch (err) {
         showToast('Ошибка сохранения: ' + err.message);
       }
