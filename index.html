@@ -253,6 +253,103 @@
       opacity: 0.5;
     }
 
+    .card-slider {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .card-slider::-webkit-scrollbar {
+      display: none;
+    }
+
+    .card-slide {
+      flex: 0 0 100%;
+      width: 100%;
+      height: 100%;
+      scroll-snap-align: start;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #181818;
+    }
+
+    .card-slider-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.48);
+      color: #ffffff;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 6;
+      font-size: 16px;
+      line-height: 1;
+      padding: 0 0 2px 0;
+      transition: background 0.2s ease, opacity 0.2s ease;
+      opacity: 0;
+    }
+
+    @media (hover: hover) {
+      .card-photo-wrapper:hover .card-slider-btn {
+        opacity: 1;
+      }
+      .card-slider-btn:hover {
+        background: rgba(0, 0, 0, 0.85);
+      }
+    }
+
+    @media (hover: none) {
+      .card-slider-btn {
+        display: none;
+      }
+    }
+
+    .card-slider-btn.prev {
+      left: 8px;
+    }
+
+    .card-slider-btn.next {
+      right: 8px;
+    }
+
+    .card-dots {
+      position: absolute;
+      bottom: 8px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    .card-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.45);
+      transition: all 0.2s ease;
+    }
+
+    .card-dot.active {
+      background: #ffffff;
+      width: 12px;
+      border-radius: 3px;
+    }
+
     /* Бейджи на фото */
     .card-badge-freshness {
       position: absolute;
@@ -265,6 +362,7 @@
       padding: 3px 8px;
       border-radius: 6px;
       backdrop-filter: blur(4px);
+      z-index: 5;
     }
 
     .card-badge-freshness.today {
@@ -281,6 +379,7 @@
       font-weight: 700;
       padding: 3px 8px;
       border-radius: 6px;
+      z-index: 5;
     }
 
     .card-photo-counter {
@@ -293,6 +392,8 @@
       font-weight: 600;
       padding: 2px 7px;
       border-radius: 6px;
+      z-index: 5;
+      pointer-events: none;
     }
 
     .card-badge-video {
@@ -309,7 +410,8 @@
       display: flex;
       align-items: center;
       gap: 4px;
-      z-index: 2;
+      z-index: 5;
+      pointer-events: none;
     }
 
     /* Контент карточки */
@@ -1572,6 +1674,25 @@
       items.forEach(item => feed.appendChild(createListingCard(item)));
     }
 
+    function parsePhotosArray(photos, fallbackId) {
+      let list = [];
+      if (Array.isArray(photos)) {
+        list = photos.filter(p => typeof p === 'string' && p.trim().length > 0);
+      } else if (typeof photos === 'string' && photos.trim()) {
+        try {
+          const parsed = JSON.parse(photos);
+          if (Array.isArray(parsed)) list = parsed.filter(p => typeof p === 'string' && p.trim().length > 0);
+          else if (photos.trim().length > 5) list = [photos.trim()];
+        } catch (e) {
+          if (photos.trim().length > 5) list = [photos.trim()];
+        }
+      }
+      if (list.length === 0 && fallbackId) {
+        list = [fallbackId];
+      }
+      return list;
+    }
+
     function createListingCard(item) {
       const card = document.createElement('article');
       card.className = 'listing-card';
@@ -1589,83 +1710,204 @@
       const roomsStr = item.rooms ? ` • ${item.rooms} комн.` : '';
       const titleStr = `${typeLabel}${roomsStr}`;
 
-      // Проверка на наличие видео
+      // Сбор всех медиа файлов объявления (фото и видео)
+      const allMedia = parsePhotosArray(item.photos, item.photo_file_id || item.photo_url);
+      if (item.video_url && !allMedia.includes(item.video_url)) {
+        allMedia.push(item.video_url);
+      }
+      if (Array.isArray(item.videos)) {
+        item.videos.forEach(v => {
+          if (v && !allMedia.includes(v)) allMedia.push(v);
+        });
+      }
+
       const hasVideo = Boolean(
         item.video_url ||
         (Array.isArray(item.videos) && item.videos.length > 0) ||
-        (Array.isArray(item.photos) && item.photos.some(p => typeof p === 'string' && (p.includes('.mp4') || p.includes('/videos/')))) ||
-        (typeof item.photo_file_id === 'string' && (item.photo_file_id.includes('.mp4') || item.photo_file_id.includes('/videos/'))) ||
-        (typeof item.photo_url === 'string' && (item.photo_url.includes('.mp4') || item.photo_url.includes('/videos/')))
+        allMedia.some(m => typeof m === 'string' && (m.includes('.mp4') || m.includes('/videos/')))
       );
 
-      card.innerHTML = `
-        <div class="card-photo-wrapper">
+      // Контейнер фото
+      const wrapper = document.createElement('div');
+      wrapper.className = 'card-photo-wrapper';
+
+      const badgeFreshness = `<span class="card-badge-freshness ${freshness.isToday ? 'today' : ''}">${freshness.text}</span>`;
+      const badgeResale = item.is_resale ? '<span class="card-badge-resale">Пересдача</span>' : '';
+      const badgeVideo = hasVideo ? '<span class="card-badge-video">▶ Видео</span>' : '';
+
+      if (allMedia.length === 0) {
+        wrapper.innerHTML = `
+          <div class="card-photo-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+            <span>Нет фото</span>
+          </div>
+          ${badgeFreshness}
+          ${badgeResale}
+        `;
+      } else if (allMedia.length === 1) {
+        const m = allMedia[0];
+        const isVid = typeof m === 'string' && (m.endsWith('.mp4') || m.includes('/videos/'));
+        const directUrl = (typeof m === 'string' && m.startsWith('http')) ? m : null;
+
+        wrapper.innerHTML = `
           <div class="card-photo-placeholder" id="ph-${item.id}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
             <span>Загрузка...</span>
           </div>
-          <img class="card-photo-img" id="img-${item.id}" style="display: none;" alt="Photo" loading="lazy">
-          <span class="card-badge-freshness ${freshness.isToday ? 'today' : ''}">${freshness.text}</span>
-          ${item.is_resale ? '<span class="card-badge-resale">Пересдача</span>' : ''}
-          ${hasVideo ? '<span class="card-badge-video">▶ Видео</span>' : ''}
-          ${(Array.isArray(item.photos) && item.photos.length > 1) ? `<span class="card-photo-counter">📸 ${item.photos.length}</span>` : ''}
-        </div>
-        <div class="card-content">
-          <div class="card-price-row">
-            <span class="card-price">${priceStr}<span class="card-price-period">${item.price ? period : ''}</span></span>
-          </div>
-          <div class="card-title-line">${titleStr}</div>
-          <div class="card-location-line">
-            <span>📍 ${item.district || 'Дананг'}</span>
-          </div>
-          <div class="card-tags">
-            ${item.district ? `<span class="tag-chip">${item.district}</span>` : ''}
-            ${item.property_type ? `<span class="tag-chip">${typeLabel}</span>` : ''}
-            ${item.contact_in_text || item.sender_username ? `<span class="tag-chip">Есть контакт</span>` : ''}
-          </div>
-        </div>
-      `;
+          ${badgeFreshness}
+          ${badgeResale}
+          ${badgeVideo}
+        `;
 
-      // 1. Если сервер уже отдал прямой photo_url — показываем сразу!
-      if (item.photo_url) {
-        const phEl = card.querySelector(`#ph-${item.id}`);
-        const isVid = typeof item.photo_url === 'string' && (item.photo_url.endsWith('.mp4') || item.photo_url.includes('/videos/'));
-        if (isVid) {
-          const wrapper = card.querySelector('.card-photo-wrapper');
-          const vidEl = document.createElement('video');
-          vidEl.className = 'card-photo-img';
-          vidEl.src = item.photo_url;
-          vidEl.muted = true;
-          vidEl.loop = true;
-          vidEl.playsInline = true;
-          vidEl.preload = 'metadata';
-          vidEl.onloadeddata = () => { phEl.style.display = 'none'; vidEl.style.display = 'block'; };
-          vidEl.onerror = () => { phEl.style.display = 'flex'; };
-          wrapper.insertBefore(vidEl, phEl.nextSibling);
-        } else {
-          const imgEl = card.querySelector(`#img-${item.id}`);
-          if (imgEl && phEl) {
-            imgEl.onload = () => { phEl.style.display = 'none'; imgEl.style.display = 'block'; };
-            imgEl.onerror = () => { phEl.style.display = 'flex'; imgEl.style.display = 'none'; };
-            imgEl.src = item.photo_url;
+        if (directUrl) {
+          const phEl = wrapper.querySelector(`#ph-${item.id}`);
+          if (isVid) {
+            const vid = document.createElement('video');
+            vid.className = 'card-photo-img';
+            vid.src = directUrl;
+            vid.muted = true;
+            vid.loop = true;
+            vid.playsInline = true;
+            vid.preload = 'metadata';
+            vid.onloadeddata = () => { if (phEl) phEl.style.display = 'none'; vid.style.display = 'block'; };
+            vid.onerror = () => { if (phEl) phEl.style.display = 'flex'; };
+            wrapper.appendChild(vid);
+          } else {
+            const img = document.createElement('img');
+            img.className = 'card-photo-img';
+            img.loading = 'lazy';
+            img.src = directUrl;
+            img.onload = () => { if (phEl) phEl.style.display = 'none'; img.style.display = 'block'; };
+            img.onerror = () => { if (phEl) phEl.style.display = 'flex'; };
+            wrapper.appendChild(img);
           }
+        } else {
+          getListingPhotoUrl(m, true).then(url => {
+            const phEl = wrapper.querySelector(`#ph-${item.id}`);
+            if (url) {
+              const img = document.createElement('img');
+              img.className = 'card-photo-img';
+              img.src = url;
+              img.onload = () => { if (phEl) phEl.style.display = 'none'; };
+              wrapper.appendChild(img);
+            }
+          });
         }
       } else {
-        // 2. Иначе — ленивая загрузка через IntersectionObserver только когда карточка на экране
-        const cardPhotoId = item.photo_file_id || (Array.isArray(item.photos) && item.photos[0]) || null;
-        if (cardPhotoId) {
-          card.setAttribute('data-photo-id', cardPhotoId);
-          card.setAttribute('data-item-id', item.id);
-          if (cardPhotoObserver) {
-            cardPhotoObserver.observe(card);
+        // Карусель (несколько медиа: свайп пальцем или клик стрелок)
+        const slider = document.createElement('div');
+        slider.className = 'card-slider';
+
+        allMedia.forEach((m, idx) => {
+          const slide = document.createElement('div');
+          slide.className = 'card-slide';
+          const isVid = typeof m === 'string' && (m.endsWith('.mp4') || m.includes('/videos/'));
+          const directUrl = (typeof m === 'string' && m.startsWith('http')) ? m : null;
+
+          if (directUrl) {
+            if (isVid) {
+              slide.innerHTML = `<video class="card-photo-img" src="${directUrl}" muted loop playsinline preload="${idx === 0 ? 'metadata' : 'none'}"></video>`;
+            } else {
+              slide.innerHTML = `<img class="card-photo-img" src="${directUrl}" alt="Фото ${idx + 1}" loading="${idx === 0 ? 'eager' : 'lazy'}">`;
+            }
           } else {
-            triggerCardPhotoLoad(card);
+            slide.innerHTML = `<div class="card-photo-placeholder" style="color:#fff;"><span>Загрузка...</span></div>`;
+            getListingPhotoUrl(m, idx === 0).then(url => {
+              if (url) {
+                slide.innerHTML = `<img class="card-photo-img" src="${url}" alt="Фото ${idx + 1}" loading="lazy">`;
+              }
+            });
           }
-        } else {
-          const phEl = card.querySelector(`#ph-${item.id} span`);
-          if (phEl) phEl.textContent = 'Нет фото';
-        }
+          slider.appendChild(slide);
+        });
+
+        wrapper.appendChild(slider);
+        wrapper.insertAdjacentHTML('beforeend', badgeFreshness);
+        wrapper.insertAdjacentHTML('beforeend', badgeResale);
+        wrapper.insertAdjacentHTML('beforeend', badgeVideo);
+        wrapper.insertAdjacentHTML('beforeend', `<span class="card-photo-counter">📸 1 / ${allMedia.length}</span>`);
+
+        // Кнопки для десктопа (появляются при наведении мыши)
+        const btnPrev = document.createElement('button');
+        btnPrev.className = 'card-slider-btn prev';
+        btnPrev.type = 'button';
+        btnPrev.innerHTML = '‹';
+        btnPrev.setAttribute('aria-label', 'Предыдущее');
+
+        const btnNext = document.createElement('button');
+        btnNext.className = 'card-slider-btn next';
+        btnNext.type = 'button';
+        btnNext.innerHTML = '›';
+        btnNext.setAttribute('aria-label', 'Следующее');
+
+        wrapper.appendChild(btnPrev);
+        wrapper.appendChild(btnNext);
+
+        const counterEl = wrapper.querySelector('.card-photo-counter');
+
+        slider.addEventListener('scroll', () => {
+          const w = slider.offsetWidth || 1;
+          const currentIdx = Math.min(Math.round(slider.scrollLeft / w), allMedia.length - 1);
+          if (counterEl) {
+            counterEl.textContent = `📸 ${currentIdx + 1} / ${allMedia.length}`;
+          }
+        }, { passive: true });
+
+        btnPrev.addEventListener('click', (e) => {
+          e.stopPropagation();
+          triggerHaptic('light');
+          slider.scrollBy({ left: -slider.offsetWidth, behavior: 'smooth' });
+        });
+
+        btnNext.addEventListener('click', (e) => {
+          e.stopPropagation();
+          triggerHaptic('light');
+          slider.scrollBy({ left: slider.offsetWidth, behavior: 'smooth' });
+        });
+
+        // Отличие горизонтального свайпа пальцем от клика для открытия карточки
+        let touchStartX = 0;
+        let isSwiping = false;
+
+        slider.addEventListener('touchstart', (e) => {
+          touchStartX = e.touches[0].clientX;
+          isSwiping = false;
+        }, { passive: true });
+
+        slider.addEventListener('touchmove', (e) => {
+          if (Math.abs(e.touches[0].clientX - touchStartX) > 10) {
+            isSwiping = true;
+          }
+        }, { passive: true });
+
+        slider.addEventListener('click', (e) => {
+          if (isSwiping) {
+            e.stopPropagation();
+            isSwiping = false;
+          }
+        });
       }
+
+      card.appendChild(wrapper);
+
+      // Контентная часть карточки
+      const content = document.createElement('div');
+      content.className = 'card-content';
+      content.innerHTML = `
+        <div class="card-price-row">
+          <span class="card-price">${priceStr}<span class="card-price-period">${item.price ? period : ''}</span></span>
+        </div>
+        <div class="card-title-line">${titleStr}</div>
+        <div class="card-location-line">
+          <span>📍 ${item.district || 'Дананг'}</span>
+        </div>
+        <div class="card-tags">
+          ${item.district ? `<span class="tag-chip">${item.district}</span>` : ''}
+          ${item.property_type ? `<span class="tag-chip">${typeLabel}</span>` : ''}
+          ${item.contact_in_text || item.sender_username ? `<span class="tag-chip">Есть контакт</span>` : ''}
+        </div>
+      `;
+      card.appendChild(content);
 
       card.addEventListener('click', () => {
         triggerHaptic('light');
@@ -1674,6 +1916,7 @@
 
       return card;
     }
+
 
     function formatFreshness(dateStr) {
       if (!dateStr) return { text: 'Давно', isToday: false };
@@ -1695,25 +1938,6 @@
 
     // --- 6. ДЕТАЛЬНЫЙ ЭКРАН ОБЪЯВЛЕНИЯ ---
     let currentDetailListing = null;
-
-    function parsePhotosArray(photos, fallbackId) {
-      let list = [];
-      if (Array.isArray(photos)) {
-        list = photos.filter(p => typeof p === 'string' && p.trim().length > 0);
-      } else if (typeof photos === 'string' && photos.trim()) {
-        try {
-          const parsed = JSON.parse(photos);
-          if (Array.isArray(parsed)) list = parsed.filter(p => typeof p === 'string' && p.trim().length > 0);
-          else if (photos.trim().length > 5) list = [photos.trim()];
-        } catch (e) {
-          if (photos.trim().length > 5) list = [photos.trim()];
-        }
-      }
-      if (list.length === 0 && fallbackId) {
-        list = [fallbackId];
-      }
-      return list;
-    }
 
     async function openDetailScreen(listingId) {
       const overlay = document.getElementById('detailOverlay');
