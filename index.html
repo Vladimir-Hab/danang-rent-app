@@ -295,6 +295,23 @@
       border-radius: 6px;
     }
 
+    .card-badge-video {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      z-index: 2;
+    }
+
     /* Контент карточки */
     .card-content {
       padding: 12px 14px;
@@ -519,6 +536,13 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
+    }
+
+    .gallery-video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
     }
 
     .gallery-counter {
@@ -1418,21 +1442,25 @@
       const imgEl = card.querySelector(`#img-${itemId}`);
       const phEl = card.querySelector(`#ph-${itemId}`);
 
-      // Если в кэше — показываем мгновенно
-      const cached = getCachedPhotoUrl(photoId);
-      if (cached) {
-        if (imgEl && phEl) {
-          imgEl.src = cached;
-          imgEl.style.display = 'block';
-          phEl.style.display = 'none';
-        }
-        return;
-      }
-
-      // Если не в кэше — ставим в очередь с высоким приоритетом (она на экране!)
-      getListingPhotoUrl(photoId, true).then(url => {
-        if (!imgEl || !phEl) return;
-        if (url) {
+      const showMedia = (url) => {
+        if (!url || !phEl) return;
+        const isVid = url.endsWith('.mp4') || url.includes('/videos/');
+        if (isVid) {
+          const wrapper = card.querySelector('.card-photo-wrapper');
+          let vidEl = wrapper.querySelector('video.card-photo-img');
+          if (!vidEl) {
+            vidEl = document.createElement('video');
+            vidEl.className = 'card-photo-img';
+            vidEl.muted = true;
+            vidEl.loop = true;
+            vidEl.playsInline = true;
+            vidEl.preload = 'metadata';
+            wrapper.insertBefore(vidEl, phEl.nextSibling);
+          }
+          vidEl.src = url;
+          vidEl.onloadeddata = () => { phEl.style.display = 'none'; vidEl.style.display = 'block'; };
+          vidEl.onerror = () => { const span = phEl.querySelector('span'); if (span) span.textContent = 'Ошибка медиа'; };
+        } else if (imgEl) {
           imgEl.onload = () => {
             phEl.style.display = 'none';
             imgEl.style.display = 'block';
@@ -1442,7 +1470,21 @@
             if (span) span.textContent = 'Нет фото';
           };
           imgEl.src = url;
-        } else {
+        }
+      };
+
+      // Если в кэше — показываем мгновенно
+      const cached = getCachedPhotoUrl(photoId);
+      if (cached) {
+        showMedia(cached);
+        return;
+      }
+
+      // Если не в кэше — ставим в очередь с высоким приоритетом (она на экране!)
+      getListingPhotoUrl(photoId, true).then(url => {
+        if (url) {
+          showMedia(url);
+        } else if (phEl) {
           const span = phEl.querySelector('span');
           if (span) span.textContent = 'Нет фото';
         }
@@ -1547,15 +1589,25 @@
       const roomsStr = item.rooms ? ` • ${item.rooms} комн.` : '';
       const titleStr = `${typeLabel}${roomsStr}`;
 
+      // Проверка на наличие видео
+      const hasVideo = Boolean(
+        item.video_url ||
+        (Array.isArray(item.videos) && item.videos.length > 0) ||
+        (Array.isArray(item.photos) && item.photos.some(p => typeof p === 'string' && (p.includes('.mp4') || p.includes('/videos/')))) ||
+        (typeof item.photo_file_id === 'string' && (item.photo_file_id.includes('.mp4') || item.photo_file_id.includes('/videos/'))) ||
+        (typeof item.photo_url === 'string' && (item.photo_url.includes('.mp4') || item.photo_url.includes('/videos/')))
+      );
+
       card.innerHTML = `
         <div class="card-photo-wrapper">
           <div class="card-photo-placeholder" id="ph-${item.id}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
-            <span>Загрузка фото...</span>
+            <span>Загрузка...</span>
           </div>
           <img class="card-photo-img" id="img-${item.id}" style="display: none;" alt="Photo" loading="lazy">
           <span class="card-badge-freshness ${freshness.isToday ? 'today' : ''}">${freshness.text}</span>
           ${item.is_resale ? '<span class="card-badge-resale">Пересдача</span>' : ''}
+          ${hasVideo ? '<span class="card-badge-video">▶ Видео</span>' : ''}
           ${(Array.isArray(item.photos) && item.photos.length > 1) ? `<span class="card-photo-counter">📸 ${item.photos.length}</span>` : ''}
         </div>
         <div class="card-content">
@@ -1576,12 +1628,27 @@
 
       // 1. Если сервер уже отдал прямой photo_url — показываем сразу!
       if (item.photo_url) {
-        const imgEl = card.querySelector(`#img-${item.id}`);
         const phEl = card.querySelector(`#ph-${item.id}`);
-        if (imgEl && phEl) {
-          imgEl.onload = () => { phEl.style.display = 'none'; imgEl.style.display = 'block'; };
-          imgEl.onerror = () => { phEl.style.display = 'flex'; imgEl.style.display = 'none'; };
-          imgEl.src = item.photo_url;
+        const isVid = typeof item.photo_url === 'string' && (item.photo_url.endsWith('.mp4') || item.photo_url.includes('/videos/'));
+        if (isVid) {
+          const wrapper = card.querySelector('.card-photo-wrapper');
+          const vidEl = document.createElement('video');
+          vidEl.className = 'card-photo-img';
+          vidEl.src = item.photo_url;
+          vidEl.muted = true;
+          vidEl.loop = true;
+          vidEl.playsInline = true;
+          vidEl.preload = 'metadata';
+          vidEl.onloadeddata = () => { phEl.style.display = 'none'; vidEl.style.display = 'block'; };
+          vidEl.onerror = () => { phEl.style.display = 'flex'; };
+          wrapper.insertBefore(vidEl, phEl.nextSibling);
+        } else {
+          const imgEl = card.querySelector(`#img-${item.id}`);
+          if (imgEl && phEl) {
+            imgEl.onload = () => { phEl.style.display = 'none'; imgEl.style.display = 'block'; };
+            imgEl.onerror = () => { phEl.style.display = 'flex'; imgEl.style.display = 'none'; };
+            imgEl.src = item.photo_url;
+          }
         }
       } else {
         // 2. Иначе — ленивая загрузка через IntersectionObserver только когда карточка на экране
@@ -1656,10 +1723,18 @@
       overlay.classList.add('active');
       if (tg?.BackButton) tg.BackButton.show();
 
-      // Быстрый предпросмотр из кэша (сразу со всеми известными фото)
+      // Быстрый предпросмотр из кэша (сразу со всеми известными фото и видео)
       let localItem = listings.find(l => l.id === listingId);
       if (localItem) {
         const localPhotos = parsePhotosArray(localItem.photos, localItem.photo_file_id);
+        if (localItem.video_url && !localPhotos.includes(localItem.video_url)) {
+          localPhotos.push(localItem.video_url);
+        }
+        if (Array.isArray(localItem.videos)) {
+          localItem.videos.forEach(v => {
+            if (v && !localPhotos.includes(v)) localPhotos.push(v);
+          });
+        }
         renderDetailData(localItem, localPhotos);
       }
 
@@ -1667,6 +1742,14 @@
         const detail = await apiPost('/listing-detail', { listing_id: listingId });
         currentDetailListing = detail;
         const allPhotos = parsePhotosArray(detail.photos, detail.photo_file_id || localItem?.photo_file_id);
+        if (detail.video_url && !allPhotos.includes(detail.video_url)) {
+          allPhotos.push(detail.video_url);
+        }
+        if (Array.isArray(detail.videos)) {
+          detail.videos.forEach(v => {
+            if (v && !allPhotos.includes(v)) allPhotos.push(v);
+          });
+        }
         renderDetailData(detail, allPhotos);
       } catch (e) {
         console.error('Ошибка загрузки деталей:', e);
@@ -1704,9 +1787,10 @@
         }
 
         photoIds.forEach((pId, idx) => {
+          const isVideoDirect = typeof pId === 'string' && (pId.endsWith('.mp4') || pId.includes('/videos/'));
           const slide = document.createElement('div');
           slide.className = 'gallery-slide';
-          slide.innerHTML = `<div class="card-photo-placeholder" style="color:#fff;"><span>Загрузка фото ${idx + 1}...</span></div>`;
+          slide.innerHTML = `<div class="card-photo-placeholder" style="color:#fff;"><span>Загрузка ${isVideoDirect ? 'видео' : 'медиа'} ${idx + 1}...</span></div>`;
           slider.appendChild(slide);
 
           if (photoIds.length > 1) {
@@ -1717,7 +1801,12 @@
 
           getListingPhotoUrl(pId, true).then(url => {
             if (url) {
-              slide.innerHTML = `<img class="gallery-img" src="${url}" alt="Фото ${idx + 1}" loading="lazy">`;
+              const isVid = url.endsWith('.mp4') || url.includes('/videos/');
+              if (isVid) {
+                slide.innerHTML = `<video class="gallery-video" src="${url}" controls playsinline preload="metadata"></video>`;
+              } else {
+                slide.innerHTML = `<img class="gallery-img" src="${url}" alt="Фото ${idx + 1}" loading="lazy">`;
+              }
             } else {
               slide.innerHTML = `<div class="card-photo-placeholder" style="color:#fff;"><span>Не удалось загрузить</span></div>`;
             }
