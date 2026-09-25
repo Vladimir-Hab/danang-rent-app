@@ -1292,9 +1292,12 @@
     const PHOTO_TIMEOUT_MS = 6000;           // 6 секунд таймаут на один запрос
     let photoQueue = [];
 
-    // Получить URL из постоянного кэша (localStorage + память)
+    // Получить URL из постоянного кэша (localStorage + память) или прямой R2 URL
     function getCachedPhotoUrl(fileId) {
       if (!fileId) return null;
+      if (typeof fileId === 'string' && (fileId.startsWith('http://') || fileId.startsWith('https://'))) {
+        return fileId;
+      }
       if (photoCache[fileId]) return photoCache[fileId];
       try {
         const stored = localStorage.getItem('tg_ph_' + fileId.slice(-32));
@@ -1309,6 +1312,7 @@
     // Сохранить URL в кэш
     function setCachedPhotoUrl(fileId, url) {
       if (!fileId || !url) return;
+      if (typeof fileId === 'string' && (fileId.startsWith('http://') || fileId.startsWith('https://'))) return;
       photoCache[fileId] = url;
       try {
         localStorage.setItem('tg_ph_' + fileId.slice(-32), url);
@@ -1361,6 +1365,9 @@
 
     function getListingPhotoUrl(fileId, isPriority = false) {
       if (!fileId) return Promise.resolve(null);
+      if (typeof fileId === 'string' && (fileId.startsWith('http://') || fileId.startsWith('https://'))) {
+        return Promise.resolve(fileId);
+      }
 
       const cached = getCachedPhotoUrl(fileId);
       if (cached) return Promise.resolve(cached);
