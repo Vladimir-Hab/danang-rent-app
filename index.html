@@ -222,17 +222,15 @@
     }
 
     /* Карточка объявления (Avito style) */
-    /* Премиум карточка (Авито стиль) */
+    /* Премиум карточка (Авито стиль: золотая рамка на лицевой стороне) */
     .listing-card.is-premium {
-      background: linear-gradient(180deg, rgba(254, 243, 199, 0.45) 0%, var(--card-bg) 65px) !important;
-      border: 1.5px solid #f59e0b !important;
-      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.18) !important;
+      border: 2px solid #f59e0b !important;
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.25) !important;
     }
 
     [data-theme="dark"] .listing-card.is-premium {
-      background: linear-gradient(180deg, rgba(245, 158, 11, 0.15) 0%, var(--card-bg) 65px) !important;
-      border: 1.5px solid rgba(245, 158, 11, 0.7) !important;
-      box-shadow: 0 4px 18px rgba(245, 158, 11, 0.22) !important;
+      border: 2px solid #fbbf24 !important;
+      box-shadow: 0 4px 20px rgba(251, 191, 36, 0.25) !important;
     }
 
     .card-badge-premium {
@@ -254,25 +252,9 @@
       z-index: 10;
     }
 
-    .detail-premium-banner {
-      margin: 12px 0 6px 0;
-      padding: 10px 14px;
-      background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.08) 100%);
-      border: 1px solid rgba(245, 158, 11, 0.4);
-      border-radius: var(--radius-sm);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #b45309;
-    }
+    
 
-    [data-theme="dark"] .detail-premium-banner {
-      color: #fbbf24;
-      background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.1) 100%);
-      border-color: rgba(245, 158, 11, 0.5);
-    }
+    [data-theme="dark"] 
 
     .listing-card {
       background: var(--card-bg);
@@ -1564,8 +1546,7 @@
       </div>
 
       <div class="detail-body">
-        <div class="detail-premium-banner" id="detailPremiumBanner" style="display: none;">👑 Премиум-предложение от владельца</div>
-        <div class="detail-price" id="detailPrice">$400 / мес</div>
+                <div class="detail-price" id="detailPrice">$400 / мес</div>
         <div class="detail-title" id="detailTitle">Студия в My Khe</div>
 
         <div class="detail-params-grid">
@@ -2445,10 +2426,7 @@
     function renderDetailData(item, photoIds) {
       if (!item) return;
       currentDetailListing = item;
-      const premBanner = document.getElementById('detailPremiumBanner');
-      if (premBanner) {
-        premBanner.style.display = item.is_premium ? 'flex' : 'none';
-      }
+
       const curr = item.currency === 'VND' ? '₫' : '$';
       const period = item.price_period === 'day' ? '/ сутки' : (item.price_period === 'year' ? '/ год' : '/ месяц');
 
