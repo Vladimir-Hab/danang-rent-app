@@ -222,6 +222,58 @@
     }
 
     /* Карточка объявления (Avito style) */
+    /* Премиум карточка (Авито стиль) */
+    .listing-card.is-premium {
+      background: linear-gradient(180deg, rgba(254, 243, 199, 0.45) 0%, var(--card-bg) 65px) !important;
+      border: 1.5px solid #f59e0b !important;
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.18) !important;
+    }
+
+    [data-theme="dark"] .listing-card.is-premium {
+      background: linear-gradient(180deg, rgba(245, 158, 11, 0.15) 0%, var(--card-bg) 65px) !important;
+      border: 1.5px solid rgba(245, 158, 11, 0.7) !important;
+      box-shadow: 0 4px 18px rgba(245, 158, 11, 0.22) !important;
+    }
+
+    .card-badge-premium {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 2px 8px rgba(217, 119, 6, 0.45);
+      z-index: 10;
+    }
+
+    .detail-premium-banner {
+      margin: 12px 0 6px 0;
+      padding: 10px 14px;
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.08) 100%);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #b45309;
+    }
+
+    [data-theme="dark"] .detail-premium-banner {
+      color: #fbbf24;
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.1) 100%);
+      border-color: rgba(245, 158, 11, 0.5);
+    }
+
     .listing-card {
       background: var(--card-bg);
       border-radius: var(--radius-md);
@@ -1512,6 +1564,7 @@
       </div>
 
       <div class="detail-body">
+        <div class="detail-premium-banner" id="detailPremiumBanner" style="display: none;">👑 Премиум-предложение от владельца</div>
         <div class="detail-price" id="detailPrice">$400 / мес</div>
         <div class="detail-title" id="detailTitle">Студия в My Khe</div>
 
@@ -2086,7 +2139,7 @@
 
     function createListingCard(item) {
       const card = document.createElement('article');
-      card.className = 'listing-card';
+      card.className = item.is_premium ? 'listing-card is-premium' : 'listing-card';
 
       // Форматирование свежести
       const freshness = formatFreshness(item.created_at);
@@ -2122,6 +2175,7 @@
       const wrapper = document.createElement('div');
       wrapper.className = 'card-photo-wrapper';
 
+      const badgePremium = item.is_premium ? '<span class="card-badge-premium">👑 Премиум</span>' : '';
       const badgeFreshness = `<span class="card-badge-freshness ${freshness.isToday ? 'today' : ''}">${freshness.text}</span>`;
       const badgeResale = item.is_resale ? '<span class="card-badge-resale">Пересдача</span>' : '';
       const badgeVideo = hasVideo ? '<span class="card-badge-video">▶ Видео</span>' : '';
@@ -2132,6 +2186,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
             <span>Нет фото</span>
           </div>
+          ${badgePremium}
           ${badgeFreshness}
           ${badgeResale}
         `;
@@ -2145,6 +2200,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
             <span>Загрузка...</span>
           </div>
+          ${badgePremium}
           ${badgeFreshness}
           ${badgeResale}
           ${badgeVideo}
@@ -2213,6 +2269,7 @@
         });
 
         wrapper.appendChild(slider);
+        if (badgePremium) wrapper.insertAdjacentHTML('beforeend', badgePremium);
         wrapper.insertAdjacentHTML('beforeend', badgeFreshness);
         wrapper.insertAdjacentHTML('beforeend', badgeResale);
         wrapper.insertAdjacentHTML('beforeend', badgeVideo);
@@ -2388,6 +2445,10 @@
     function renderDetailData(item, photoIds) {
       if (!item) return;
       currentDetailListing = item;
+      const premBanner = document.getElementById('detailPremiumBanner');
+      if (premBanner) {
+        premBanner.style.display = item.is_premium ? 'flex' : 'none';
+      }
       const curr = item.currency === 'VND' ? '₫' : '$';
       const period = item.price_period === 'day' ? '/ сутки' : (item.price_period === 'year' ? '/ год' : '/ месяц');
 
@@ -2412,8 +2473,12 @@
       setEl('detailStreet', item.street ? `ул. ${item.street}` : 'Не указана');
       setEl('detailType', typeLabel);
       setEl('detailRooms', item.rooms ? `${item.rooms} комн.` : '—');
-      setEl('detailResale', item.is_resale ? 'Да (пересдача)' : 'Нет (прямая)');
-      setEl('detailRawText', item.raw_text || 'Нет описания');
+      let displayText = item.raw_text || 'Нет описания';
+      // Очистка от рекламы чужих каналов и групп
+      displayText = displayText.replace(/(?:Channel for more options|Telegram[- ]?(?:канал|группа)|WhatsApp[- ]?группа|Channel|Group)[^\n]*/gi, '');
+      displayText = displayText.replace(/https?:\/\/(?:chat\.whatsapp\.com|t\.me\/(?:joinchat|\+|c\/))\S+/gi, '');
+      displayText = displayText.replace(/\n{3,}/g, '\n\n').trim();
+      setEl('detailRawText', displayText || 'Нет описания');
 
       const mapBox = document.getElementById('detailMapBox');
       const btnMap = document.getElementById('btnDetailMap');
