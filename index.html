@@ -222,40 +222,6 @@
     }
 
     /* Карточка объявления (Avito style) */
-    /* Премиум карточка (Авито стиль: золотая рамка на лицевой стороне) */
-    .listing-card.is-premium {
-      border: 2px solid #f59e0b !important;
-      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.25) !important;
-    }
-
-    [data-theme="dark"] .listing-card.is-premium {
-      border: 2px solid #fbbf24 !important;
-      box-shadow: 0 4px 20px rgba(251, 191, 36, 0.25) !important;
-    }
-
-    .card-badge-premium {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-      color: #ffffff;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 4px;
-      letter-spacing: 0.4px;
-      text-transform: uppercase;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      box-shadow: 0 2px 8px rgba(217, 119, 6, 0.45);
-      z-index: 10;
-    }
-
-    
-
-    [data-theme="dark"] 
-
     .listing-card {
       background: var(--card-bg);
       border-radius: var(--radius-md);
@@ -270,6 +236,36 @@
 
     .listing-card:active {
       transform: scale(0.985);
+    }
+
+    /* Премиум карточка (Авито стиль: золотая рамка и золотой бейдж) */
+    .listing-card.is-premium {
+      border: 2px solid #f59e0b !important;
+      box-shadow: 0 4px 18px rgba(245, 158, 11, 0.3) !important;
+    }
+
+    [data-theme="dark"] .listing-card.is-premium {
+      border: 2px solid #fbbf24 !important;
+      box-shadow: 0 4px 20px rgba(251, 191, 36, 0.35) !important;
+    }
+
+    .card-badge-premium {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 9px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 2px 8px rgba(217, 119, 6, 0.5);
+      z-index: 10;
     }
 
     .card-photo-wrapper {
