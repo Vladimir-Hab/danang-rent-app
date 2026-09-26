@@ -1475,21 +1475,24 @@
     <!-- 3. ВКЛАДКА: О ПРОЕКТЕ -->
     <section class="view-screen" id="viewAbout">
       <div style="padding: 20px 16px; max-width: 600px; margin: 0 auto;">
-        <div class="state-box" style="text-align: left; padding: 20px;">
-          <h2 style="font-size: 20px; margin-bottom: 8px;">🏠 Жильё в Дананге</h2>
-          <p style="font-size: 14px; color: var(--hint-color); margin-bottom: 14px;">
-            Умный агрегатор предложений аренды квартир, студий и вилл в Дананге (Вьетнам).
+        <div class="state-box" style="text-align: left; padding: 22px 20px; line-height: 1.6;">
+          <h2 style="font-size: 20px; margin-bottom: 12px; color: var(--text-color);">🏠 Жильё в Дананге</h2>
+          <p style="font-size: 14px; color: var(--text-color); margin-bottom: 14px; font-weight: 500;">
+            Каталог актуальных предложений аренды — квартиры, студии, виллы.
           </p>
-          <ul style="font-size: 13px; line-height: 1.6; margin-left: 18px; margin-bottom: 16px;">
-            <li>Автоматический сбор объявлений из популярных Telegram-чатов экспатов</li>
-            <li>Анализ и структурирование данных нейросетью DeepSeek</li>
-            <li>Мгновенные уведомления о новых объектах по вашим фильтрам</li>
-          </ul>
-          <div style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 12px;">
-            <p style="font-size: 12px; color: var(--hint-color); margin-bottom: 10px;">
-              <b>Подключение к n8n:</b> <span id="displayApiUrl">...</span>
+          <p style="font-size: 14px; color: var(--hint-color); margin-bottom: 14px;">
+            Все объявления — из чата сообщества Дананга. Здесь удобно искать по параметрам, не пролистывая ленту вручную.
+          </p>
+          <p style="font-size: 14px; color: var(--hint-color); margin-bottom: 18px;">
+            Хотите жильё с конкретными параметрами — сохраните поиск в разделе <b>"Подписки"</b>, и бот пришлёт уведомление, как только появится что-то подходящее.
+          </p>
+          <div style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 8px;">
+            <p style="font-size: 14px; color: var(--text-color); margin-bottom: 12px;">
+              Вопросы и предложения — пишите <a href="https://t.me/vladimir_7575" target="_blank" style="color: var(--button-color); text-decoration: none; font-weight: 600;">@vladimir_7575</a>
             </p>
-            <button class="btn-action-secondary" style="width: 100%;" id="btnChangeApi">⚙️ Настроить адрес сервера</button>
+            <a href="https://t.me/vladimir_7575" target="_blank" class="btn-action-primary" style="display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; width: 100%;">
+              <span>Написать в Telegram</span>
+            </a>
           </div>
         </div>
       </div>
@@ -3376,17 +3379,21 @@
       btn.addEventListener('click', () => switchTab(btn.getAttribute('data-tab')));
     });
 
-    // Настройка API вручную (вкладка О проекте)
-    document.getElementById('btnChangeApi').addEventListener('click', () => {
-      const url = prompt('Введите базовый URL вебхуков n8n:', API_BASE_URL);
-      if (url) {
-        API_BASE_URL = url.trim().replace(/\/$/, '');
-        localStorage.setItem('n8n_api_base', API_BASE_URL);
-        document.getElementById('displayApiUrl').textContent = API_BASE_URL;
-        showToast('Сервер обновлён!');
-        fetchListings(1, false);
-      }
-    });
+    // Настройка API вручную (если элемент присутствует)
+    const btnChangeApi = document.getElementById('btnChangeApi');
+    if (btnChangeApi) {
+      btnChangeApi.addEventListener('click', () => {
+        const url = prompt('Введите базовый URL вебхуков n8n:', API_BASE_URL);
+        if (url) {
+          API_BASE_URL = url.trim().replace(/\/$/, '');
+          localStorage.setItem('n8n_api_base', API_BASE_URL);
+          const disp = document.getElementById('displayApiUrl');
+          if (disp) disp.textContent = API_BASE_URL;
+          showToast('Сервер обновлён!');
+          fetchListings(1, false);
+        }
+      });
+    }
 
     // --- 10. БЕСКОНЕЧНЫЙ СКРОЛЛ ЧЕРЕЗ INTERSECTION OBSERVER ---
     const observer = new IntersectionObserver((entries) => {
