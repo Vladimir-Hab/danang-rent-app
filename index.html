@@ -1298,6 +1298,10 @@
             <div class="param-label">Комнаты</div>
             <div class="param-val" id="detailRooms">—</div>
           </div>
+          <div class="param-box">
+            <div class="param-label">Сделка</div>
+            <div class="param-val" id="detailResale">—</div>
+          </div>
         </div>
 
         <div id="detailMapBox" style="display: none; margin-bottom: 14px;">
@@ -2087,7 +2091,7 @@
       if (tg?.BackButton) tg.BackButton.show();
 
       // Быстрый предпросмотр из кэша (сразу со всеми известными фото и видео)
-      let localItem = listings.find(l => l.id === listingId);
+      let localItem = listings.find(l => String(l.id) === String(listingId));
       if (localItem) {
         const localPhotos = parsePhotosArray(localItem.photos, localItem.photo_file_id);
         if (localItem.video_url && !localPhotos.includes(localItem.video_url)) {
@@ -2103,27 +2107,36 @@
 
       try {
         const detail = await apiPost('/listing-detail', { listing_id: listingId });
-        currentDetailListing = detail;
-        const allPhotos = parsePhotosArray(detail.photos, detail.photo_file_id || localItem?.photo_file_id);
-        if (detail.video_url && !allPhotos.includes(detail.video_url)) {
-          allPhotos.push(detail.video_url);
+        if (detail && detail.id) {
+          currentDetailListing = detail;
+          const allPhotos = parsePhotosArray(detail.photos, detail.photo_file_id || localItem?.photo_file_id);
+          if (detail.video_url && !allPhotos.includes(detail.video_url)) {
+            allPhotos.push(detail.video_url);
+          }
+          if (Array.isArray(detail.videos)) {
+            detail.videos.forEach(v => {
+              if (v && !allPhotos.includes(v)) allPhotos.push(v);
+            });
+          }
+          renderDetailData(detail, allPhotos);
         }
-        if (Array.isArray(detail.videos)) {
-          detail.videos.forEach(v => {
-            if (v && !allPhotos.includes(v)) allPhotos.push(v);
-          });
-        }
-        renderDetailData(detail, allPhotos);
       } catch (e) {
         console.error('Ошибка загрузки деталей:', e);
       }
     }
 
     function renderDetailData(item, photoIds) {
+      if (!item) return;
       currentDetailListing = item;
       const curr = item.currency === 'VND' ? '₫' : '$';
       const period = item.price_period === 'day' ? '/ сутки' : (item.price_period === 'year' ? '/ год' : '/ месяц');
-      document.getElementById('detailPrice').textContent = item.price ? `${formatNumber(item.price)} ${curr} ${period}` : 'Цена по запросу';
+
+      const setEl = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+      };
+
+      setEl('detailPrice', item.price ? `${formatNumber(item.price)} ${curr} ${period}` : 'Цена по запросу');
 
       const typeLabel = item.property_type ? (PROPERTY_TYPES.find(p => p.id === item.property_type)?.label || item.property_type) : 'Жильё';
       let titleLoc = '';
@@ -2134,21 +2147,23 @@
       } else if (item.district) {
         titleLoc = ` • ${item.district}`;
       }
-      document.getElementById('detailTitle').textContent = `${typeLabel}${titleLoc || ' в Дананге'}`;
-      document.getElementById('detailDistrict').textContent = item.district || 'Не указан';
-      document.getElementById('detailStreet').textContent = item.street ? `ул. ${item.street}` : 'Не указана';
-      document.getElementById('detailType').textContent = typeLabel;
-      document.getElementById('detailRooms').textContent = item.rooms ? `${item.rooms} комн.` : '—';
-      document.getElementById('detailResale').textContent = item.is_resale ? 'Да (пересдача)' : 'Нет (прямая)';
-      document.getElementById('detailRawText').textContent = item.raw_text || 'Нет описания';
+      setEl('detailTitle', `${typeLabel}${titleLoc || ' в Дананге'}`);
+      setEl('detailDistrict', item.district || 'Не указан');
+      setEl('detailStreet', item.street ? `ул. ${item.street}` : 'Не указана');
+      setEl('detailType', typeLabel);
+      setEl('detailRooms', item.rooms ? `${item.rooms} комн.` : '—');
+      setEl('detailResale', item.is_resale ? 'Да (пересдача)' : 'Нет (прямая)');
+      setEl('detailRawText', item.raw_text || 'Нет описания');
 
       const mapBox = document.getElementById('detailMapBox');
       const btnMap = document.getElementById('btnDetailMap');
-      if (item.google_maps_url) {
-        btnMap.href = item.google_maps_url;
-        mapBox.style.display = 'block';
-      } else {
-        mapBox.style.display = 'none';
+      if (mapBox && btnMap) {
+        if (item.google_maps_url) {
+          btnMap.href = item.google_maps_url;
+          mapBox.style.display = 'block';
+        } else {
+          mapBox.style.display = 'none';
+        }
       }
 
       // Галерея
