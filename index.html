@@ -2075,7 +2075,24 @@
       }
     }
 
-    function renderFeed(items, append = false) {
+    function isListingPremium(item) {
+      if (!item) return false;
+      const isOwner = Boolean(item.is_premium) ||
+        (String(item.sender_id) === '8400922583') ||
+        (String(item.sender_id) === '1453078684') ||
+        (item.sender_username && item.sender_username.toLowerCase() === 'vladimir_7575');
+
+      if (!isOwner) return false;
+
+      // Премиум действует ровно 24 часа с момента создания
+      if (!item.created_at) return true;
+      const createdTime = new Date(item.created_at).getTime();
+      const now = Date.now();
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      return (now - createdTime) <= oneDayMs;
+    }
+
+        function renderFeed(items, append = false) {
       const feed = document.getElementById('listingsFeed');
       if (!items || items.length === 0) {
         if (!append) {
@@ -2089,6 +2106,16 @@
           `;
         }
         return;
+      }
+
+      // Закрепление: свежие Премиум-объявления (до 24 часов) всегда показываются первыми вверху ленты
+      if (!append && Array.isArray(items)) {
+        items.sort((a, b) => {
+          const premA = isListingPremium(a) ? 1 : 0;
+          const premB = isListingPremium(b) ? 1 : 0;
+          if (premA !== premB) return premB - premA;
+          return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        });
       }
 
       if (!append) feed.innerHTML = '';
@@ -2115,11 +2142,7 @@
     }
 
     function createListingCard(item) {
-      const isPrem = Boolean(item.is_premium) ||
-        (String(item.sender_id) === '8400922583') ||
-        (String(item.sender_id) === '1453078684') ||
-        (item.sender_username && item.sender_username.toLowerCase() === 'vladimir_7575');
-
+      const isPrem = isListingPremium(item);
       const card = document.createElement('article');
       card.className = isPrem ? 'listing-card is-premium' : 'listing-card';
 
