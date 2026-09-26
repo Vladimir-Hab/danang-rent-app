@@ -719,6 +719,236 @@
       border-radius: 4px;
     }
 
+    /* Кнопка разворачивания галереи на весь экран */
+    .gallery-expand-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(0, 0, 0, 0.65);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 12;
+      touch-action: manipulation;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .gallery-expand-badge:active {
+      transform: scale(0.95);
+      background: rgba(0, 0, 0, 0.85);
+    }
+
+    /* ПОЛНОЭКРАННЫЙ LIGHTBOX С ЗУМОМ И ПАНАМИ */
+    .media-lightbox {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #000000;
+      z-index: 300;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.22s ease, visibility 0.22s ease;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      overflow: hidden;
+    }
+
+    .media-lightbox.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .lightbox-header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: calc(56px + env(safe-area-inset-top, 0px));
+      padding: env(safe-area-inset-top, 0px) 16px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 75%, transparent 100%);
+      z-index: 40;
+      color: #ffffff;
+    }
+
+    .lightbox-counter {
+      font-size: 14px;
+      font-weight: 600;
+      color: #f2f2f7;
+      background: rgba(255, 255, 255, 0.18);
+      padding: 5px 12px;
+      border-radius: 14px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .lightbox-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .lightbox-ctrl-btn {
+      min-width: 42px;
+      height: 42px;
+      padding: 0 10px;
+      background: rgba(255, 255, 255, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 12px;
+      color: #ffffff;
+      font-size: 19px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      touch-action: manipulation;
+      transition: background 0.15s, transform 0.08s;
+    }
+
+    .lightbox-ctrl-btn:active {
+      transform: scale(0.92);
+      background: rgba(255, 255, 255, 0.35);
+    }
+
+    .lightbox-ctrl-btn.zoom-level {
+      font-size: 12px;
+      font-weight: 700;
+      min-width: 52px;
+      padding: 0 8px;
+    }
+
+    .lightbox-ctrl-btn.close-btn {
+      font-size: 26px;
+      line-height: 1;
+      background: rgba(255, 255, 255, 0.28);
+    }
+
+    .lightbox-stage {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .lightbox-content-box {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      touch-action: none;
+    }
+
+    .lightbox-img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      will-change: transform;
+      transform-origin: center center;
+      cursor: grab;
+      user-select: none;
+      -webkit-user-drag: none;
+      touch-action: none;
+    }
+
+    .lightbox-img.animating {
+      transition: transform 0.22s cubic-bezier(0.1, 0.9, 0.2, 1);
+    }
+
+    .lightbox-img:active {
+      cursor: grabbing;
+    }
+
+    .lightbox-video {
+      max-width: 100%;
+      max-height: 100%;
+      width: 100%;
+      height: 100%;
+      outline: none;
+      background: #000;
+      object-fit: contain;
+    }
+
+    .lightbox-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 35;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      touch-action: manipulation;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .lightbox-arrow:active {
+      transform: translateY(-50%) scale(0.92);
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    .lightbox-arrow.prev {
+      left: 14px;
+    }
+
+    .lightbox-arrow.next {
+      right: 14px;
+    }
+
+    .lightbox-footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 10px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+      background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 75%, transparent 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 40;
+      pointer-events: none;
+    }
+
+    .lightbox-hint {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.75);
+      text-align: center;
+      letter-spacing: 0.2px;
+    }
+
     .detail-body {
       padding: 16px 16px 24px;
       max-width: 680px;
@@ -1275,6 +1505,10 @@
         </div>
         <div class="gallery-counter" id="galleryCounter">1 / 1</div>
         <div class="gallery-dots" id="galleryDots"></div>
+        <button class="gallery-expand-badge" id="btnOpenGalleryFullscreen" title="Развернуть на весь экран">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+          <span>На весь экран</span>
+        </button>
       </div>
 
       <div class="detail-body">
@@ -1404,6 +1638,32 @@
           <span>⭐ Сохранить в избранные поиски</span>
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- ПОЛНОЭКРАННЫЙ ПРОСМОТРЩИК ФОТО И ВИДЕО (LIGHTBOX С ЗУМОМ) -->
+  <div class="media-lightbox" id="mediaLightbox">
+    <div class="lightbox-header">
+      <div class="lightbox-counter" id="lightboxCounter">1 / 1</div>
+      <div class="lightbox-controls">
+        <button class="lightbox-ctrl-btn" id="btnLightboxZoomOut" title="Уменьшить" aria-label="Уменьшить">−</button>
+        <button class="lightbox-ctrl-btn zoom-level" id="btnLightboxZoomReset" title="Сбросить масштаб">100%</button>
+        <button class="lightbox-ctrl-btn" id="btnLightboxZoomIn" title="Увеличить" aria-label="Увеличить">+</button>
+        <button class="lightbox-ctrl-btn close-btn" id="btnCloseLightbox" title="Закрыть" aria-label="Закрыть">&times;</button>
+      </div>
+    </div>
+
+    <div class="lightbox-stage" id="lightboxStage">
+      <div class="lightbox-content-box" id="lightboxContentBox">
+        <!-- img with zoom/pan or video dynamically rendered -->
+      </div>
+    </div>
+
+    <button class="lightbox-arrow prev" id="btnLightboxPrev" aria-label="Предыдущее медиа">&#10094;</button>
+    <button class="lightbox-arrow next" id="btnLightboxNext" aria-label="Следующее медиа">&#10095;</button>
+
+    <div class="lightbox-footer">
+      <span class="lightbox-hint">Щипок двумя пальцами или двойной тап для зума • Свайп для перелистывания</span>
     </div>
   </div>
 
@@ -2170,23 +2430,56 @@
       const slider = document.getElementById('gallerySlider');
       const dots = document.getElementById('galleryDots');
       const counter = document.getElementById('galleryCounter');
+      const btnExpand = document.getElementById('btnOpenGalleryFullscreen');
       slider.innerHTML = '';
       dots.innerHTML = '';
 
       if (!photoIds || photoIds.length === 0) {
         if (counter) counter.style.display = 'none';
+        if (btnExpand) btnExpand.style.display = 'none';
+        currentDetailMediaList = [];
         slider.innerHTML = `<div class="gallery-slide"><div class="card-photo-placeholder" style="color:#fff;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg><span>Нет фото</span></div></div>`;
       } else {
         if (counter) {
           counter.style.display = 'block';
           counter.textContent = `1 / ${photoIds.length}`;
         }
+        if (btnExpand) {
+          btnExpand.style.display = 'flex';
+          btnExpand.onclick = (e) => {
+            e.stopPropagation();
+            const slideWidth = slider.offsetWidth || 1;
+            const currentIdx = Math.round(slider.scrollLeft / slideWidth) || 0;
+            openLightbox(currentDetailMediaList, currentIdx);
+          };
+        }
+
+        // Подготавливаем медиа для Lightbox
+        currentDetailMediaList = photoIds.map((pId) => {
+          const isVideoDirect = typeof pId === 'string' && (pId.endsWith('.mp4') || pId.includes('/videos/'));
+          const cached = getCachedPhotoUrl(pId);
+          return {
+            id: pId,
+            url: cached || (typeof pId === 'string' && (pId.startsWith('http://') || pId.startsWith('https://')) ? pId : null),
+            isVideo: isVideoDirect || (cached && (cached.endsWith('.mp4') || cached.includes('/videos/')))
+          };
+        });
 
         photoIds.forEach((pId, idx) => {
           const isVideoDirect = typeof pId === 'string' && (pId.endsWith('.mp4') || pId.includes('/videos/'));
           const slide = document.createElement('div');
           slide.className = 'gallery-slide';
+          slide.style.cursor = 'pointer';
           slide.innerHTML = `<div class="card-photo-placeholder" style="color:#fff;"><span>Загрузка ${isVideoDirect ? 'видео' : 'медиа'} ${idx + 1}...</span></div>`;
+          
+          // Клик на слайд открывает полноэкранный просмотр
+          slide.addEventListener('click', (e) => {
+            if (e.target.tagName && e.target.tagName.toLowerCase() === 'video' && !e.target.paused) {
+              return;
+            }
+            openLightbox(currentDetailMediaList, idx);
+          });
+
           slider.appendChild(slide);
 
           if (photoIds.length > 1) {
@@ -2198,6 +2491,13 @@
           getListingPhotoUrl(pId, true).then(url => {
             if (url) {
               const isVid = url.endsWith('.mp4') || url.includes('/videos/');
+              if (currentDetailMediaList[idx]) {
+                currentDetailMediaList[idx].url = url;
+                if (isVid) currentDetailMediaList[idx].isVideo = true;
+                if (isLightboxOpen && lightboxCurrentIndex === idx) {
+                  renderLightboxSlide();
+                }
+              }
               if (isVid) {
                 slide.innerHTML = `<video class="gallery-video" src="${url}" controls playsinline preload="metadata"></video>`;
               } else {
@@ -2244,13 +2544,353 @@
       };
     }
 
+    function updateTelegramBackButton() {
+      if (!tg?.BackButton) return;
+      if (isLightboxOpen || document.getElementById('detailOverlay')?.classList.contains('active')) {
+        tg.BackButton.show();
+      } else {
+        tg.BackButton.hide();
+      }
+    }
+
+    function handleTelegramBack() {
+      if (isLightboxOpen) {
+        closeLightbox();
+      } else if (document.getElementById('detailOverlay')?.classList.contains('active')) {
+        closeDetailScreen();
+      } else if (document.getElementById('filterModalOverlay')?.classList.contains('active')) {
+        document.getElementById('filterModalOverlay').classList.remove('active');
+      }
+    }
+
     function closeDetailScreen() {
+      if (isLightboxOpen) closeLightbox();
       document.getElementById('detailOverlay').classList.remove('active');
-      if (tg?.BackButton) tg.BackButton.hide();
+      updateTelegramBackButton();
     }
 
     document.getElementById('btnCloseDetail').addEventListener('click', closeDetailScreen);
-    if (tg?.BackButton) tg.BackButton.onClick(closeDetailScreen);
+    if (tg?.BackButton) tg.BackButton.onClick(handleTelegramBack);
+
+    // --- 6.1 ПОЛНОЭКРАННЫЙ LIGHTBOX С ЗУМОМ И ПАНАМИ ---
+    let currentDetailMediaList = [];
+    let isLightboxOpen = false;
+    let lightboxCurrentIndex = 0;
+    let lightboxScale = 1.0;
+    let lightboxPanX = 0;
+    let lightboxPanY = 0;
+
+    let isPinching = false;
+    let pinchStartDist = 0;
+    let pinchStartScale = 1.0;
+    let panTouchStartX = 0;
+    let panTouchStartY = 0;
+    let panTouchLastX = 0;
+    let panTouchLastY = 0;
+    let isTouchMoved = false;
+    let lastTapTimestamp = 0;
+
+    function openLightbox(mediaList, startIndex = 0) {
+      if (!mediaList || mediaList.length === 0) return;
+      currentDetailMediaList = mediaList;
+      lightboxCurrentIndex = Math.max(0, Math.min(startIndex, mediaList.length - 1));
+      isLightboxOpen = true;
+
+      const lightboxEl = document.getElementById('mediaLightbox');
+      if (lightboxEl) lightboxEl.classList.add('active');
+
+      renderLightboxSlide();
+      updateTelegramBackButton();
+      triggerHaptic('light');
+    }
+
+    function closeLightbox() {
+      if (!isLightboxOpen) return;
+      isLightboxOpen = false;
+
+      const lightboxEl = document.getElementById('mediaLightbox');
+      if (lightboxEl) lightboxEl.classList.remove('active');
+
+      const vid = document.querySelector('#lightboxContentBox video');
+      if (vid) {
+        try { vid.pause(); vid.src = ''; } catch(e) {}
+      }
+
+      resetZoom(false);
+      updateTelegramBackButton();
+      triggerHaptic('light');
+    }
+
+    function renderLightboxSlide() {
+      const box = document.getElementById('lightboxContentBox');
+      const counter = document.getElementById('lightboxCounter');
+      const prevBtn = document.getElementById('btnLightboxPrev');
+      const nextBtn = document.getElementById('btnLightboxNext');
+      const zoomIn = document.getElementById('btnLightboxZoomIn');
+      const zoomOut = document.getElementById('btnLightboxZoomOut');
+      const zoomReset = document.getElementById('btnLightboxZoomReset');
+
+      if (!box || !currentDetailMediaList || currentDetailMediaList.length === 0) return;
+
+      const total = currentDetailMediaList.length;
+      if (counter) counter.textContent = `${lightboxCurrentIndex + 1} / ${total}`;
+
+      if (prevBtn) prevBtn.style.display = total > 1 ? 'flex' : 'none';
+      if (nextBtn) nextBtn.style.display = total > 1 ? 'flex' : 'none';
+
+      resetZoom(false);
+
+      const item = currentDetailMediaList[lightboxCurrentIndex];
+      if (!item) return;
+
+      if (!item.url) {
+        box.innerHTML = `
+          <div class="card-photo-placeholder" style="color:#ffffff; font-size:14px; gap:12px;">
+            <div class="loading-spinner"></div>
+            <span>Загрузка медиа...</span>
+          </div>
+        `;
+        if (zoomIn) zoomIn.style.display = 'none';
+        if (zoomOut) zoomOut.style.display = 'none';
+        if (zoomReset) zoomReset.style.display = 'none';
+
+        if (item.id) {
+          getListingPhotoUrl(item.id, true).then(url => {
+            if (url) {
+              item.url = url;
+              if (url.endsWith('.mp4') || url.includes('/videos/')) item.isVideo = true;
+              if (isLightboxOpen && lightboxCurrentIndex === currentDetailMediaList.indexOf(item)) {
+                renderLightboxSlide();
+              }
+            }
+          });
+        }
+        return;
+      }
+
+      if (item.isVideo) {
+        if (zoomIn) zoomIn.style.display = 'none';
+        if (zoomOut) zoomOut.style.display = 'none';
+        if (zoomReset) zoomReset.style.display = 'none';
+
+        box.innerHTML = `
+          <video class="lightbox-video" src="${item.url}" controls autoplay playsinline preload="auto"></video>
+        `;
+      } else {
+        if (zoomIn) zoomIn.style.display = 'flex';
+        if (zoomOut) zoomOut.style.display = 'flex';
+        if (zoomReset) {
+          zoomReset.style.display = 'flex';
+          zoomReset.textContent = '100%';
+        }
+
+        box.innerHTML = `
+          <img class="lightbox-img" id="lightboxActiveImg" src="${item.url}" alt="Фото ${lightboxCurrentIndex + 1}">
+        `;
+      }
+    }
+
+    function prevLightboxSlide() {
+      if (!currentDetailMediaList || currentDetailMediaList.length <= 1) return;
+      lightboxCurrentIndex = (lightboxCurrentIndex - 1 + currentDetailMediaList.length) % currentDetailMediaList.length;
+      renderLightboxSlide();
+      triggerHaptic('light');
+    }
+
+    function nextLightboxSlide() {
+      if (!currentDetailMediaList || currentDetailMediaList.length <= 1) return;
+      lightboxCurrentIndex = (lightboxCurrentIndex + 1) % currentDetailMediaList.length;
+      renderLightboxSlide();
+      triggerHaptic('light');
+    }
+
+    function clampPan() {
+      const stage = document.getElementById('lightboxStage');
+      if (!stage) return;
+      const w = stage.clientWidth || window.innerWidth;
+      const h = stage.clientHeight || window.innerHeight;
+      const maxPanX = Math.max(0, (w * lightboxScale - w) / 2);
+      const maxPanY = Math.max(0, (h * lightboxScale - h) / 2);
+      lightboxPanX = Math.max(-maxPanX, Math.min(maxPanX, lightboxPanX));
+      lightboxPanY = Math.max(-maxPanY, Math.min(maxPanY, lightboxPanY));
+    }
+
+    function applyTransform(animate = false) {
+      const img = document.getElementById('lightboxActiveImg');
+      if (!img) return;
+      if (animate) {
+        img.classList.add('animating');
+      } else {
+        img.classList.remove('animating');
+      }
+      img.style.transform = `translate3d(${lightboxPanX}px, ${lightboxPanY}px, 0) scale(${lightboxScale})`;
+
+      const zoomReset = document.getElementById('btnLightboxZoomReset');
+      if (zoomReset) {
+        zoomReset.textContent = `${Math.round(lightboxScale * 100)}%`;
+      }
+    }
+
+    function setZoom(newScale, animate = true) {
+      const clamped = Math.max(1.0, Math.min(4.0, newScale));
+      lightboxScale = clamped;
+      if (lightboxScale <= 1.01) {
+        lightboxScale = 1.0;
+        lightboxPanX = 0;
+        lightboxPanY = 0;
+      } else {
+        clampPan();
+      }
+      applyTransform(animate);
+    }
+
+    function resetZoom(animate = true) {
+      setZoom(1.0, animate);
+    }
+
+    function toggleZoom(animate = true) {
+      if (lightboxScale > 1.2) {
+        resetZoom(animate);
+      } else {
+        setZoom(2.5, animate);
+      }
+    }
+
+    function initLightboxGestures() {
+      const stage = document.getElementById('lightboxStage');
+      if (!stage) return;
+
+      stage.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+          isPinching = true;
+          pinchStartDist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          );
+          pinchStartScale = lightboxScale;
+        } else if (e.touches.length === 1) {
+          isPinching = false;
+          panTouchStartX = e.touches[0].clientX;
+          panTouchStartY = e.touches[0].clientY;
+          panTouchLastX = panTouchStartX;
+          panTouchLastY = panTouchStartY;
+          isTouchMoved = false;
+        }
+      }, { passive: false });
+
+      stage.addEventListener('touchmove', (e) => {
+        if (isPinching && e.touches.length === 2) {
+          e.preventDefault();
+          const currentDist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          );
+          if (pinchStartDist > 0) {
+            const factor = currentDist / pinchStartDist;
+            lightboxScale = Math.max(0.85, Math.min(4.5, pinchStartScale * factor));
+            clampPan();
+            applyTransform(false);
+          }
+        } else if (!isPinching && e.touches.length === 1) {
+          const clientX = e.touches[0].clientX;
+          const clientY = e.touches[0].clientY;
+          const dx = clientX - panTouchLastX;
+          const dy = clientY - panTouchLastY;
+          panTouchLastX = clientX;
+          panTouchLastY = clientY;
+
+          if (Math.hypot(clientX - panTouchStartX, clientY - panTouchStartY) > 5) {
+            isTouchMoved = true;
+          }
+
+          if (lightboxScale > 1.05) {
+            e.preventDefault();
+            lightboxPanX += dx;
+            lightboxPanY += dy;
+            clampPan();
+            applyTransform(false);
+          }
+        }
+      }, { passive: false });
+
+      stage.addEventListener('touchend', (e) => {
+        if (isPinching) {
+          if (e.touches.length < 2) {
+            isPinching = false;
+            if (lightboxScale < 1.05) {
+              resetZoom(true);
+            } else if (lightboxScale > 4.0) {
+              setZoom(4.0, true);
+            } else {
+              clampPan();
+              applyTransform(true);
+            }
+          }
+          return;
+        }
+
+        if (e.touches.length === 0) {
+          if (!isTouchMoved) {
+            const now = Date.now();
+            if (now - lastTapTimestamp < 320) {
+              toggleZoom(true);
+              triggerHaptic('light');
+              lastTapTimestamp = 0;
+              return;
+            }
+            lastTapTimestamp = now;
+          }
+
+          if (lightboxScale <= 1.05) {
+            const totalDx = panTouchLastX - panTouchStartX;
+            const totalDy = panTouchLastY - panTouchStartY;
+
+            if (Math.abs(totalDx) > 45 && Math.abs(totalDx) > Math.abs(totalDy) * 1.3) {
+              if (totalDx < -45) nextLightboxSlide();
+              else prevLightboxSlide();
+            } else if (totalDy > 80 && totalDy > Math.abs(totalDx) * 1.5) {
+              closeLightbox();
+            }
+          } else {
+            clampPan();
+            applyTransform(true);
+          }
+        }
+      }, { passive: true });
+
+      stage.addEventListener('wheel', (e) => {
+        if (!document.getElementById('lightboxActiveImg')) return;
+        e.preventDefault();
+        const delta = e.deltaY < 0 ? 0.35 : -0.35;
+        setZoom(lightboxScale + delta, true);
+      }, { passive: false });
+
+      document.getElementById('btnCloseLightbox')?.addEventListener('click', closeLightbox);
+      document.getElementById('btnLightboxZoomIn')?.addEventListener('click', () => {
+        setZoom(lightboxScale + 0.5, true);
+        triggerHaptic('light');
+      });
+      document.getElementById('btnLightboxZoomOut')?.addEventListener('click', () => {
+        setZoom(lightboxScale - 0.5, true);
+        triggerHaptic('light');
+      });
+      document.getElementById('btnLightboxZoomReset')?.addEventListener('click', () => {
+        toggleZoom(true);
+        triggerHaptic('light');
+      });
+      document.getElementById('btnLightboxPrev')?.addEventListener('click', prevLightboxSlide);
+      document.getElementById('btnLightboxNext')?.addEventListener('click', nextLightboxSlide);
+
+      window.addEventListener('keydown', (e) => {
+        if (!isLightboxOpen) return;
+        if (e.key === 'Escape') closeLightbox();
+        else if (e.key === 'ArrowLeft') prevLightboxSlide();
+        else if (e.key === 'ArrowRight') nextLightboxSlide();
+        else if (e.key === '+' || e.key === '=') setZoom(lightboxScale + 0.5, true);
+        else if (e.key === '-' || e.key === '_') setZoom(lightboxScale - 0.5, true);
+        else if (e.key === '0') resetZoom(true);
+      });
+    }
 
     // --- 7. ПОИСК И ФИЛЬТРЫ ---
     function initFiltersUI() {
@@ -2694,6 +3334,7 @@
     // СТАРТ (скрипт в конце body — DOM уже готов)
     initCardPhotoObserver();
     initFiltersUI();
+    initLightboxGestures();
 
     // Deep-linking: вкладка подписок (?tab=subscriptions или #subscriptions)
     const urlParams = new URLSearchParams(window.location.search);
