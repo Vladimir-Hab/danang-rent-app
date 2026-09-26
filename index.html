@@ -80,46 +80,58 @@
 
     .search-input {
       width: 100%;
-      height: 40px;
-      padding: 0 34px 0 34px;
+      height: 46px;
+      padding: 0 38px 0 38px;
       background: var(--bg-color);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      font-size: 14px;
+      border: 1.5px solid var(--border-color);
+      border-radius: 14px;
+      font-size: 15px;
       color: var(--text-color);
       outline: none;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
 
     .search-input:focus {
       border-color: var(--button-color);
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
     }
 
     .clear-search-btn {
       position: absolute;
-      right: 10px;
+      right: 4px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 38px;
+      height: 38px;
       background: none;
       border: none;
       color: var(--hint-color);
-      font-size: 16px;
+      font-size: 18px;
       cursor: pointer;
       display: none;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      touch-action: manipulation;
     }
 
     .btn-filter-trigger {
-      height: 40px;
-      padding: 0 12px;
+      height: 46px;
+      padding: 0 16px;
       background: var(--bg-color);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
+      border: 1.5px solid var(--border-color);
+      border-radius: 14px;
       color: var(--text-color);
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 7px;
       position: relative;
+      flex-shrink: 0;
+      touch-action: manipulation;
+      transition: background 0.15s, border-color 0.15s;
     }
 
     .filter-badge-count {
@@ -128,7 +140,7 @@
       font-size: 11px;
       font-weight: 700;
       border-radius: 10px;
-      padding: 2px 6px;
+      padding: 2px 7px;
       line-height: 1;
       display: none;
     }
@@ -150,20 +162,28 @@
 
     .quick-chip {
       white-space: nowrap;
-      padding: 6px 12px;
-      border-radius: 16px;
-      font-size: 12px;
-      font-weight: 500;
+      min-height: 40px;
+      padding: 9px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
       background: var(--bg-color);
       color: var(--text-color);
-      border: 1px solid var(--border-color);
+      border: 1.5px solid var(--border-color);
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+      user-select: none;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
     }
 
     .quick-chip.active {
       background: var(--button-color);
       color: var(--button-text-color);
       border-color: var(--button-color);
+      box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25);
     }
 
     /* Панель активных фильтров с кнопкой сохранения */
@@ -515,14 +535,21 @@
       align-items: center;
       justify-content: center;
       flex: 1;
-      height: 48px;
+      height: 52px;
       background: none;
       border: none;
       color: var(--hint-color);
       font-size: 11px;
       font-weight: 500;
       cursor: pointer;
-      gap: 3px;
+      gap: 4px;
+      touch-action: manipulation;
+      user-select: none;
+      transition: transform 0.1s ease, color 0.15s ease;
+    }
+
+    .tab-item:active {
+      transform: scale(0.92);
     }
 
     .tab-item svg {
@@ -581,15 +608,20 @@
     }
 
     .btn-nav-icon {
+      min-width: 44px;
+      min-height: 44px;
       background: none;
       border: none;
-      font-size: 16px;
+      font-size: 18px;
       color: var(--text-color);
       cursor: pointer;
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 6px;
       font-weight: 600;
+      border-radius: 50%;
+      touch-action: manipulation;
     }
 
     .detail-scroll-area {
@@ -750,42 +782,63 @@
       flex-shrink: 0;
       background: var(--card-bg);
       border-top: 1px solid var(--border-color);
-      padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+      padding: 12px 16px calc(14px + env(safe-area-inset-bottom, 0px));
       display: flex;
-      gap: 10px;
+      gap: 12px;
       z-index: 25;
     }
 
     .btn-action-primary {
       flex: 2;
-      height: 48px;
+      height: 52px;
+      min-height: 52px;
       background: var(--button-color);
       color: var(--button-text-color);
       border: none;
-      border-radius: var(--radius-md);
-      font-size: 15px;
+      border-radius: 16px;
+      font-size: 16px;
       font-weight: 700;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
+      touch-action: manipulation;
+      user-select: none;
+      box-shadow: 0 4px 14px rgba(0, 122, 255, 0.25);
+      transition: transform 0.08s ease, filter 0.08s ease;
     }
 
     .btn-action-secondary {
       flex: 1;
-      height: 48px;
+      height: 52px;
+      min-height: 52px;
       background: var(--bg-color);
       color: var(--text-color);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      font-size: 14px;
+      border: 1.5px solid var(--border-color);
+      border-radius: 16px;
+      font-size: 15px;
       font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
+      touch-action: manipulation;
+      user-select: none;
+      transition: transform 0.08s ease, background 0.08s ease;
+    }
+
+    .btn-action-primary:active,
+    .btn-action-secondary:active,
+    .btn-filter-trigger:active,
+    .chip-btn:active,
+    .seg-tab:active,
+    .quick-chip:active,
+    .btn-nav-icon:active,
+    .btn-save-search-pill:active {
+      transform: scale(0.97);
+      filter: brightness(0.95);
     }
 
     /* Модальное окно фильтров */
@@ -865,47 +918,60 @@
     .chip-btn {
       display: inline-flex;
       align-items: center;
-      padding: 7px 12px;
+      justify-content: center;
+      min-height: 42px;
+      padding: 10px 16px;
       background: var(--bg-color);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      font-size: 13px;
-      font-weight: 500;
+      border: 1.5px solid var(--border-color);
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 600;
       cursor: pointer;
+      touch-action: manipulation;
+      user-select: none;
+      transition: all 0.15s ease;
     }
 
     .chip-item input:checked + .chip-btn {
       background: var(--button-color);
       color: var(--button-text-color);
       border-color: var(--button-color);
+      box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25);
     }
 
     .price-inputs-row {
       display: flex;
-      gap: 8px;
-      margin-bottom: 8px;
+      gap: 10px;
+      margin-bottom: 10px;
     }
 
     .segmented-tabs {
       display: flex;
       background: var(--bg-color);
-      border-radius: var(--radius-md);
-      padding: 3px;
-      border: 1px solid var(--border-color);
-      margin-bottom: 8px;
+      border-radius: 14px;
+      padding: 4px;
+      border: 1.5px solid var(--border-color);
+      margin-bottom: 10px;
     }
 
     .seg-tab {
       flex: 1;
-      padding: 7px;
-      font-size: 13px;
-      font-weight: 500;
+      min-height: 42px;
+      padding: 9px 6px;
+      font-size: 14px;
+      font-weight: 600;
       color: var(--hint-color);
       background: none;
       border: none;
-      border-radius: 10px;
+      border-radius: 11px;
       cursor: pointer;
       text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+      user-select: none;
+      transition: all 0.15s ease;
     }
 
     .seg-tab.active {
@@ -918,8 +984,59 @@
     .filter-actions {
       display: flex;
       flex-direction: column;
+      gap: 12px;
+      margin-top: 24px;
+      position: sticky;
+      bottom: 0;
+      background: var(--card-bg);
+      padding: 14px 0 calc(16px + env(safe-area-inset-bottom, 0px));
+      border-top: 1px solid var(--border-color);
+      box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.08);
+      z-index: 10;
+    }
+
+    .filter-actions .btn-action-primary {
+      width: 100%;
+      height: 54px;
+      min-height: 54px;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 16px;
+      background: var(--button-color);
+      color: var(--button-text-color);
+      border: none;
+      box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       gap: 8px;
-      margin-top: 20px;
+      touch-action: manipulation;
+    }
+
+    .filter-actions .btn-action-secondary {
+      width: 100%;
+      height: 50px;
+      min-height: 50px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 16px;
+      background: var(--bg-color);
+      color: var(--text-color);
+      border: 1.5px solid var(--border-color);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      touch-action: manipulation;
+    }
+
+    .filter-actions #btnSaveFilterAsSub {
+      background: rgba(0, 122, 255, 0.08) !important;
+      border: 1.5px solid var(--button-color) !important;
+      color: var(--button-color) !important;
+      font-weight: 600;
     }
 
     /* Экран «Мои подписки» */
@@ -1170,6 +1287,10 @@
             <div class="param-val" id="detailDistrict">—</div>
           </div>
           <div class="param-box">
+            <div class="param-label">Улица / ЖК</div>
+            <div class="param-val" id="detailStreet">—</div>
+          </div>
+          <div class="param-box">
             <div class="param-label">Тип жилья</div>
             <div class="param-val" id="detailType">—</div>
           </div>
@@ -1177,10 +1298,12 @@
             <div class="param-label">Комнаты</div>
             <div class="param-val" id="detailRooms">—</div>
           </div>
-          <div class="param-box">
-            <div class="param-label">Пересдача</div>
-            <div class="param-val" id="detailResale">—</div>
-          </div>
+        </div>
+
+        <div id="detailMapBox" style="display: none; margin-bottom: 14px;">
+          <a id="btnDetailMap" href="#" target="_blank" class="btn-action-secondary" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; text-decoration: none; padding: 12px; font-weight: 600; color: #007aff; border: 1px solid rgba(0, 122, 255, 0.3); background: rgba(0, 122, 255, 0.05); border-radius: 12px;">
+            🗺️ Посмотреть точку на Google Maps
+          </a>
         </div>
 
         <div class="form-title">Описание из чата:</div>
@@ -1267,10 +1390,14 @@
 
       <!-- Действия -->
       <div class="filter-actions">
-        <button class="btn-action-primary" id="btnApplyFilters">Применить фильтры</button>
-        <button class="btn-action-secondary" id="btnResetFilters">Сбросить всё</button>
-        <button class="btn-action-secondary" id="btnSaveFilterAsSub" style="color: var(--button-color); border-color: var(--button-color);">
-          ⭐ Сохранить в избранные поиски
+        <button class="btn-action-primary" id="btnApplyFilters">
+          <span>✓ Применить фильтры</span>
+        </button>
+        <button class="btn-action-secondary" id="btnResetFilters">
+          <span>Сбросить всё</span>
+        </button>
+        <button class="btn-action-secondary" id="btnSaveFilterAsSub">
+          <span>⭐ Сохранить в избранные поиски</span>
         </button>
       </div>
     </div>
@@ -1890,6 +2017,16 @@
 
       card.appendChild(wrapper);
 
+      // Формирование строки локации
+      let locLine = 'Дананг';
+      if (item.street && item.district) {
+        locLine = `ул. ${item.street} • ${item.district}`;
+      } else if (item.street) {
+        locLine = `ул. ${item.street}`;
+      } else if (item.district) {
+        locLine = item.district;
+      }
+
       // Контентная часть карточки
       const content = document.createElement('div');
       content.className = 'card-content';
@@ -1899,11 +2036,13 @@
         </div>
         <div class="card-title-line">${titleStr}</div>
         <div class="card-location-line">
-          <span>📍 ${item.district || 'Дананг'}</span>
+          <span>📍 ${locLine}</span>
         </div>
         <div class="card-tags">
+          ${item.street ? `<span class="tag-chip">ул. ${item.street}</span>` : ''}
           ${item.district ? `<span class="tag-chip">${item.district}</span>` : ''}
           ${item.property_type ? `<span class="tag-chip">${typeLabel}</span>` : ''}
+          ${item.google_maps_url ? `<span class="tag-chip" style="color: #007aff;">🗺️ Карта</span>` : ''}
           ${item.contact_in_text || item.sender_username ? `<span class="tag-chip">Есть контакт</span>` : ''}
         </div>
       `;
@@ -1987,12 +2126,30 @@
       document.getElementById('detailPrice').textContent = item.price ? `${formatNumber(item.price)} ${curr} ${period}` : 'Цена по запросу';
 
       const typeLabel = item.property_type ? (PROPERTY_TYPES.find(p => p.id === item.property_type)?.label || item.property_type) : 'Жильё';
-      document.getElementById('detailTitle').textContent = `${typeLabel} в Дананге`;
+      let titleLoc = '';
+      if (item.street && item.district) {
+        titleLoc = ` • ул. ${item.street}, ${item.district}`;
+      } else if (item.street) {
+        titleLoc = ` • ул. ${item.street}`;
+      } else if (item.district) {
+        titleLoc = ` • ${item.district}`;
+      }
+      document.getElementById('detailTitle').textContent = `${typeLabel}${titleLoc || ' в Дананге'}`;
       document.getElementById('detailDistrict').textContent = item.district || 'Не указан';
+      document.getElementById('detailStreet').textContent = item.street ? `ул. ${item.street}` : 'Не указана';
       document.getElementById('detailType').textContent = typeLabel;
       document.getElementById('detailRooms').textContent = item.rooms ? `${item.rooms} комн.` : '—';
       document.getElementById('detailResale').textContent = item.is_resale ? 'Да (пересдача)' : 'Нет (прямая)';
       document.getElementById('detailRawText').textContent = item.raw_text || 'Нет описания';
+
+      const mapBox = document.getElementById('detailMapBox');
+      const btnMap = document.getElementById('btnDetailMap');
+      if (item.google_maps_url) {
+        btnMap.href = item.google_maps_url;
+        mapBox.style.display = 'block';
+      } else {
+        mapBox.style.display = 'none';
+      }
 
       // Галерея
       const slider = document.getElementById('gallerySlider');
