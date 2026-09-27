@@ -1300,8 +1300,69 @@
     }
 
     /* Экран «Мои подписки» */
+    /* Баннер-подсказка для активации бота в подписках */
+    .sub-bot-notice {
+      background: linear-gradient(135deg, rgba(0, 122, 255, 0.08) 0%, rgba(0, 122, 255, 0.03) 100%);
+      border: 1px solid rgba(0, 122, 255, 0.25);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    [data-theme="dark"] .sub-bot-notice {
+      background: linear-gradient(135deg, rgba(0, 122, 255, 0.15) 0%, rgba(0, 122, 255, 0.05) 100%);
+      border-color: rgba(0, 122, 255, 0.4);
+    }
+
+    .sub-bot-notice-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .sub-bot-notice-icon {
+      font-size: 22px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .sub-bot-notice-content {
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-color);
+    }
+
+    .sub-bot-notice-content b {
+      color: var(--text-color);
+      font-weight: 600;
+    }
+
+    .sub-bot-notice-btn {
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 16px;
+      background: var(--button-color);
+      color: var(--button-text-color) !important;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      touch-action: manipulation;
+      box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25);
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    .sub-bot-notice-btn:active {
+      opacity: 0.85;
+      transform: scale(0.98);
+    }
+
     .subscriptions-feed {
-      padding: 14px;
+      padding: 14px 14px 90px 14px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -1464,6 +1525,21 @@
 
     <!-- 2. ВКЛАДКА: МОИ ПОДПИСКИ (ИЗБРАННЫЕ ПОИСКИ) -->
     <section class="view-screen" id="viewSubscriptions">
+      <div style="max-width: 680px; margin: 0 auto; padding: 14px 14px 0 14px;">
+        <div class="sub-bot-notice">
+          <div class="sub-bot-notice-header">
+            <span class="sub-bot-notice-icon">🔔</span>
+            <div class="sub-bot-notice-content">
+              <b>Чтобы получать уведомления в личку:</b><br>
+              Telegram разрешает присылать сообщения только тем, кто хотя бы раз открыл диалог с ботом и нажал <b>«Старт»</b>.
+            </div>
+          </div>
+          <a href="https://t.me/DanangHomebot?start=subs" target="_blank" class="sub-bot-notice-btn">
+            <span>🤖 Запустить @DanangHomebot</span>
+            <span style="font-size: 11px; opacity: 0.85;">↗</span>
+          </a>
+        </div>
+      </div>
       <div class="subscriptions-feed" id="subscriptionsFeed">
         <div class="state-box">
           <div class="state-box-icon">⭐</div>
@@ -3411,8 +3487,66 @@
     initFiltersUI();
     initLightboxGestures();
 
-    // Deep-linking: вкладка подписок (?tab=subscriptions или #subscriptions)
+    // Deep-linking: чтение переданных фильтров (район, тип, цена от/до)
     const urlParams = new URLSearchParams(window.location.search);
+
+    const paramDistrict = urlParams.get('district');
+    const paramType = urlParams.get('type');
+    const paramMin = urlParams.get('min');
+    const paramMax = urlParams.get('max');
+
+    let hasPresetFilters = false;
+
+    if (paramDistrict) {
+      activeFilter.districts = [paramDistrict];
+      hasPresetFilters = true;
+      // Подсвечиваем чипс района, если есть
+      document.querySelectorAll('.quick-chip').forEach(chip => {
+        const d = chip.getAttribute('data-district');
+        if (d && (d.toLowerCase() === paramDistrict.toLowerCase() || paramDistrict.toLowerCase().includes(d.toLowerCase()))) {
+          chip.classList.add('active');
+        } else {
+          chip.classList.remove('active');
+        }
+      });
+    }
+
+    if (paramType) {
+      activeFilter.property_types = [paramType];
+      hasPresetFilters = true;
+    }
+
+    if (paramMin) {
+      activeFilter.price_min = Number(paramMin);
+      hasPresetFilters = true;
+      const minEl = document.getElementById('fPriceMin');
+      if (minEl) minEl.value = paramMin;
+    }
+
+    if (paramMax) {
+      activeFilter.price_max = Number(paramMax);
+      hasPresetFilters = true;
+      const maxEl = document.getElementById('fPriceMax');
+      if (maxEl) maxEl.value = paramMax;
+    }
+
+    if (hasPresetFilters) {
+      updateFilterBadge();
+      const appliedBar = document.getElementById('appliedFiltersBar');
+      const appliedText = document.getElementById('appliedFiltersText');
+      if (appliedBar && appliedText) {
+        let labelParts = [];
+        if (paramType) labelParts.push(PROPERTY_TYPES.find(p => p.id === paramType)?.label || paramType);
+        if (paramDistrict) labelParts.push(`в ${paramDistrict}`);
+        if (paramMin && paramMax) labelParts.push(`${Number(paramMin)/1000000}–${Number(paramMax)/1000000} млн ₫`);
+        else if (paramMax) labelParts.push(`до ${Number(paramMax)/1000000} млн ₫`);
+        else if (paramMin) labelParts.push(`от ${Number(paramMin)/1000000} млн ₫`);
+        appliedText.textContent = labelParts.join(' • ') || 'Применены фильтры';
+        appliedBar.style.display = 'flex';
+      }
+    }
+
+    // Deep-linking: вкладка подписок (?tab=subscriptions или #subscriptions)
     const startTab = urlParams.get('tab') || (window.location.hash === '#subscriptions' ? 'subscriptions' : null);
     if (startTab === 'subscriptions') {
       switchTab('viewSubscriptions');
