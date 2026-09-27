@@ -27,6 +27,7 @@
       --radius-lg: 20px;
       --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.04);
       --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+      --app-header-offset: max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px));
     }
 
     * {
@@ -53,7 +54,7 @@
       background: var(--card-bg);
       border-bottom: 1px solid var(--border-color);
       z-index: 50;
-      padding: 10px 14px;
+      padding: calc(10px + var(--app-header-offset, 0px)) 14px 10px 14px;
       backdrop-filter: blur(10px);
     }
 
@@ -604,6 +605,11 @@
       display: block;
     }
 
+    #viewSubscriptions,
+    #viewAbout {
+      padding-top: var(--app-header-offset, 0px);
+    }
+
     /* Экран детализации объявления (Full Modal) */
     .detail-overlay {
       position: fixed;
@@ -629,11 +635,11 @@
       flex-shrink: 0;
       background: var(--card-bg);
       border-bottom: 1px solid var(--border-color);
-      height: 52px;
+      height: calc(52px + var(--app-header-offset, 0px));
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 16px;
+      padding: var(--app-header-offset, 0px) 16px 0 16px;
       z-index: 20;
     }
 
@@ -807,8 +813,8 @@
       top: 0;
       left: 0;
       right: 0;
-      height: calc(56px + env(safe-area-inset-top, 0px));
-      padding: env(safe-area-inset-top, 0px) 16px 0;
+      height: calc(56px + var(--app-header-offset, env(safe-area-inset-top, 0px)));
+      padding: var(--app-header-offset, env(safe-area-inset-top, 0px)) 16px 0;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -1127,7 +1133,7 @@
       background: var(--card-bg);
       border-top-left-radius: var(--radius-lg);
       border-top-right-radius: var(--radius-lg);
-      max-height: 85vh;
+      max-height: calc(90vh - var(--app-header-offset, 0px));
       overflow-y: auto;
       padding: 18px 16px calc(24px + env(safe-area-inset-bottom, 0px));
       transform: translateY(100%);
@@ -1436,7 +1442,7 @@
     /* Toast */
     .toast-popup {
       position: fixed;
-      top: 14px;
+      top: calc(14px + var(--app-header-offset, 0px));
       left: 50%;
       transform: translateX(-50%) translateY(-60px);
       background: #222;
@@ -1827,6 +1833,42 @@
     let userId = 12345678;
     let initData = '';
 
+    function updateSafeAreaInsets() {
+      let topInset = 0;
+      const tgApp = window.Telegram?.WebApp;
+
+      // 1. Проверяем Telegram Bot API 8.0+ contentSafeAreaInset и safeAreaInset
+      if (tgApp) {
+        if (tgApp.contentSafeAreaInset && typeof tgApp.contentSafeAreaInset.top === 'number' && tgApp.contentSafeAreaInset.top > 0) {
+          topInset = Math.max(topInset, tgApp.contentSafeAreaInset.top);
+        } else if (tgApp.safeAreaInset && typeof tgApp.safeAreaInset.top === 'number' && tgApp.safeAreaInset.top > 0) {
+          topInset = Math.max(topInset, tgApp.safeAreaInset.top);
+        }
+      }
+
+      // 2. Проверяем CSS переменные, если их выставил Telegram WebApp
+      try {
+        const computed = getComputedStyle(document.documentElement);
+        const tgContent = parseFloat(computed.getPropertyValue('--tg-content-safe-area-inset-top')) || 0;
+        const tgSafe = parseFloat(computed.getPropertyValue('--tg-safe-area-inset-top')) || 0;
+        topInset = Math.max(topInset, tgContent, tgSafe);
+      } catch (e) {}
+
+      // 3. Fallback: если открыто напрямую по ссылке в Telegram (In-App Browser / WebApp без bot initData)
+      // В этом режиме Telegram на Android накладывает плавающую панель «✕ Закрыть ⌄ ⋮» поверх webview (~80px)
+      const isTelegramClient = /Telegram/i.test(navigator.userAgent) || Boolean(window.TelegramWebview) || Boolean(window.Telegram?.WebApp);
+      const isDirectOpen = !tgApp || !tgApp.initData || tgApp.initData.length === 0;
+
+      if (topInset === 0 && isTelegramClient && isDirectOpen) {
+        // Статус-бар Android (~28-32px) + нативная плашка Telegram «✕ Закрыть» (~48-52px)
+        topInset = 80;
+      }
+
+      if (topInset > 0) {
+        document.documentElement.style.setProperty('--app-header-offset', `${topInset}px`);
+      }
+    }
+
     if (tg) {
       tg.ready();
       tg.expand();
@@ -1842,7 +1884,26 @@
         if (tg.themeParams.button_text_color) root.style.setProperty('--button-text-color', tg.themeParams.button_text_color);
         if (tg.themeParams.secondary_bg_color) root.style.setProperty('--card-bg', tg.themeParams.secondary_bg_color);
       }
+
+      try {
+        if (tg.setHeaderColor) {
+          tg.setHeaderColor(tg.themeParams?.secondary_bg_color || '#ffffff');
+        }
+        if (tg.setBackgroundColor) {
+          tg.setBackgroundColor(tg.themeParams?.bg_color || '#f4f6f8');
+        }
+      } catch (e) {}
+
+      if (typeof tg.onEvent === 'function') {
+        tg.onEvent('contentSafeAreaChanged', updateSafeAreaInsets);
+        tg.onEvent('safeAreaChanged', updateSafeAreaInsets);
+        tg.onEvent('viewportChanged', updateSafeAreaInsets);
+      }
     }
+
+    updateSafeAreaInsets();
+    window.addEventListener('resize', updateSafeAreaInsets);
+    window.addEventListener('DOMContentLoaded', updateSafeAreaInsets);
 
     function triggerHaptic(type = 'light') {
       try {
