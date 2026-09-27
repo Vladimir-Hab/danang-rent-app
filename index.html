@@ -3551,20 +3551,56 @@
     // Deep-linking: чтение переданных фильтров (район, тип, цена от/до)
     const urlParams = new URLSearchParams(window.location.search);
 
-    const paramDistrict = urlParams.get('district');
-    const paramType = urlParams.get('type');
-    const paramMin = urlParams.get('min');
-    const paramMax = urlParams.get('max');
+    // Поддержка запуска через прямую ссылку Telegram Mini App: t.me/DanangHomebot/app?startapp=...
+    let startParamObj = {};
+    const rawStartParam = tg?.initDataUnsafe?.start_param || urlParams.get('tgWebAppStartParam') || '';
+    if (rawStartParam) {
+      try {
+        if (rawStartParam.includes('=')) {
+          const spParams = new URLSearchParams(rawStartParam.replace(/__/g, '&'));
+          spParams.forEach((v, k) => { startParamObj[k] = v; });
+        } else {
+          const parts = rawStartParam.split('__');
+          parts.forEach(part => {
+            const [k, v] = part.split('-');
+            if (k && v) startParamObj[k] = v.replace(/_/g, ' ');
+          });
+        }
+      } catch (e) {}
+    }
+
+    function parsePriceParam(val) {
+      if (!val) return null;
+      const s = String(val).trim().toLowerCase();
+      if (s.endsWith('m')) {
+        const num = parseFloat(s);
+        return isNaN(num) ? null : Math.round(num * 1000000);
+      }
+      const num = Number(s);
+      return isNaN(num) ? null : num;
+    }
+
+    const rawDistrict = urlParams.get('district') || startParamObj['district'] || startParamObj['dist'] || startParamObj['d'];
+    const paramType = urlParams.get('type') || startParamObj['type'] || startParamObj['t'];
+    const cleanMin = parsePriceParam(urlParams.get('min') || startParamObj['min']);
+    const cleanMax = parsePriceParam(urlParams.get('max') || startParamObj['max']);
+
+    let finalDistrict = rawDistrict;
+    if (rawDistrict) {
+      const normD = rawDistrict.toLowerCase().replace(/[\s_]+/g, '');
+      const found = DISTRICTS.find(d => d.id.toLowerCase().replace(/[\s_]+/g, '') === normD || d.label.toLowerCase().replace(/[\s_]+/g, '') === normD);
+      if (found) finalDistrict = found.id;
+    }
 
     let hasPresetFilters = false;
 
-    if (paramDistrict) {
-      activeFilter.districts = [paramDistrict];
+    if (finalDistrict) {
+      activeFilter.districts = [finalDistrict];
       hasPresetFilters = true;
       // Подсвечиваем чипс района, если есть
       document.querySelectorAll('.quick-chip').forEach(chip => {
         const d = chip.getAttribute('data-district');
-        if (d && (d.toLowerCase() === paramDistrict.toLowerCase() || paramDistrict.toLowerCase().includes(d.toLowerCase()))) {
+        if (d && (d.toLowerCase() === finalDistrict.toLowerCase() || finalDistrict.toLowerCase().includes(d.toLowerCase()))) {
           chip.classList.add('active');
         } else {
           chip.classList.remove('active');
@@ -3577,18 +3613,18 @@
       hasPresetFilters = true;
     }
 
-    if (paramMin) {
-      activeFilter.price_min = Number(paramMin);
+    if (cleanMin !== null) {
+      activeFilter.price_min = cleanMin;
       hasPresetFilters = true;
       const minEl = document.getElementById('fPriceMin');
-      if (minEl) minEl.value = paramMin;
+      if (minEl) minEl.value = cleanMin;
     }
 
-    if (paramMax) {
-      activeFilter.price_max = Number(paramMax);
+    if (cleanMax !== null) {
+      activeFilter.price_max = cleanMax;
       hasPresetFilters = true;
       const maxEl = document.getElementById('fPriceMax');
-      if (maxEl) maxEl.value = paramMax;
+      if (maxEl) maxEl.value = cleanMax;
     }
 
     if (hasPresetFilters) {
@@ -3598,10 +3634,10 @@
       if (appliedBar && appliedText) {
         let labelParts = [];
         if (paramType) labelParts.push(PROPERTY_TYPES.find(p => p.id === paramType)?.label || paramType);
-        if (paramDistrict) labelParts.push(`в ${paramDistrict}`);
-        if (paramMin && paramMax) labelParts.push(`${Number(paramMin)/1000000}–${Number(paramMax)/1000000} млн ₫`);
-        else if (paramMax) labelParts.push(`до ${Number(paramMax)/1000000} млн ₫`);
-        else if (paramMin) labelParts.push(`от ${Number(paramMin)/1000000} млн ₫`);
+        if (finalDistrict) labelParts.push(`в ${finalDistrict}`);
+        if (cleanMin && cleanMax) labelParts.push(`${cleanMin/1000000}–${cleanMax/1000000} млн ₫`);
+        else if (cleanMax) labelParts.push(`до ${cleanMax/1000000} млн ₫`);
+        else if (cleanMin) labelParts.push(`от ${cleanMin/1000000} млн ₫`);
         appliedText.textContent = labelParts.join(' • ') || 'Применены фильтры';
         appliedBar.style.display = 'flex';
       }
