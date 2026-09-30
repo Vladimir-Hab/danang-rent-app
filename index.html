@@ -1501,11 +1501,12 @@
   <!-- Быстрые фильтры по популярным районам -->
   <div class="quick-chips-bar" id="quickDistrictsBar">
     <button class="quick-chip active" data-district="any">Все районы</button>
+    <button class="quick-chip" data-district="Son Tra">Son Tra</button>
+    <button class="quick-chip" data-district="Ngu Hanh Son">Ngu Hanh Son</button>
     <button class="quick-chip" data-district="My An">My An</button>
     <button class="quick-chip" data-district="My Khe">My Khe</button>
-    <button class="quick-chip" data-district="Son Tra">Son Tra</button>
     <button class="quick-chip" data-district="Hai Chau">Hai Chau</button>
-    <button class="quick-chip" data-district="Ngu Hanh Son">Ngu Hanh Son</button>
+    <button class="quick-chip" data-district="Cam Le">Cam Le</button>
   </div>
 
   <!-- Панель активного фильтра с кнопкой сохранения в подписки -->
@@ -1805,17 +1806,89 @@
     const dispEl = document.getElementById('displayApiUrl');
     if (dispEl) dispEl.textContent = API_BASE_URL;
 
-    // Справочники
+    // Справочники районов (поддержка вьетнамских диакритик и разговорных названий)
+    const DISTRICT_ALIASES = {
+      'Son Tra': [
+        'Son Tra', 'Sơn Trà', 'Sơn Trá', 'Son Tra / Ngu Hanh Son',
+        'An Hải', 'An Hai', 'Phước Mỹ', 'Phuoc My', 'Mân Thái', 'Man Thai',
+        'Thọ Quang', 'Tho Quang', 'Nại Hiên Đông', 'Nai Hien Dong'
+      ],
+      'Ngu Hanh Son': [
+        'Ngu Hanh Son', 'Ngũ Hành Sơn', 'An Thượng', 'An Thuong', 'An Thu?ng',
+        'Mỹ An', 'My An', 'M? An', 'Khuê Mỹ', 'Khue My', 'Hòa Hải', 'Hoa Hai',
+        'Hòa Quý', 'Hoa Quy', 'FPT City', 'FPT', 'Son Tra / Ngu Hanh Son'
+      ],
+      'My An': [
+        'My An', 'Mỹ An', 'M? An', 'An Thượng', 'An Thuong', 'An Thu?ng'
+      ],
+      'My Khe': [
+        'My Khe', 'Mỹ Khê', 'M? Khe', 'Phước Mỹ', 'Phuoc My'
+      ],
+      'Hai Chau': [
+        'Hai Chau', 'Hải Châu', 'H?i Chau', 'Thạch Thang', 'Thach Thang',
+        'Thuận Phước', 'Thuan Phuoc', 'Hòa Cường', 'Hoa Cuong'
+      ],
+      'Cam Le': [
+        'Cam Le', 'Cẩm Lệ', 'C?m L?', 'Hòa Xuân', 'Hoa Xuan', 'Khuê Trung', 'Khue Trung'
+      ],
+      'Thanh Khe': [
+        'Thanh Khe', 'Thanh Khê', 'Chính Gián', 'Chinh Gian',
+        'Tam Thuận', 'Tam Thuan', 'Xuân Hà', 'Xuan Ha'
+      ],
+      'Lien Chieu': [
+        'Lien Chieu', 'Liên Chiểu', 'Lien Chi?u', 'Hòa Khánh', 'Hoa Khanh',
+        'Hòa Minh', 'Hoa Minh'
+      ]
+    };
+
     const DISTRICTS = [
-      { id: 'My An', label: 'My An' },
-      { id: 'My Khe', label: 'My Khe' },
-      { id: 'Son Tra', label: 'Son Tra' },
-      { id: 'Ngu Hanh Son', label: 'Ngu Hanh Son' },
-      { id: 'Hai Chau', label: 'Hai Chau' },
-      { id: 'Thanh Khe', label: 'Thanh Khe' },
-      { id: 'Lien Chieu', label: 'Lien Chieu' },
-      { id: 'Cam Le', label: 'Cam Le' }
+      { id: 'Son Tra', label: 'Son Tra (Сон Тра)' },
+      { id: 'Ngu Hanh Son', label: 'Ngu Hanh Son (Нгу Хань Сон)' },
+      { id: 'My An', label: 'My An (Мю Ан / Ан Тхыонг)' },
+      { id: 'My Khe', label: 'My Khe (Мю Кхе пляж)' },
+      { id: 'Hai Chau', label: 'Hai Chau (Хай Чау центр)' },
+      { id: 'Cam Le', label: 'Cam Le (Кам Ле / Хоа Суан)' },
+      { id: 'Thanh Khe', label: 'Thanh Khe (Тхань Кхе)' },
+      { id: 'Lien Chieu', label: 'Lien Chieu (Лиен Чиеу)' }
     ];
+
+    function expandDistrictAliases(distList) {
+      if (!Array.isArray(distList) || distList.length === 0) return [];
+      const expanded = new Set();
+      distList.forEach(d => {
+        if (!d) return;
+        const trimmed = String(d).trim();
+        const norm = trimmed.toLowerCase().replace(/[\s_/-]+/g, '');
+
+        let foundKey = Object.keys(DISTRICT_ALIASES).find(k => k.toLowerCase().replace(/[\s_/-]+/g, '') === norm);
+        if (!foundKey) {
+          for (const [key, aliases] of Object.entries(DISTRICT_ALIASES)) {
+            if (aliases.some(a => a.toLowerCase().replace(/[\s_/-]+/g, '') === norm)) {
+              foundKey = key;
+              break;
+            }
+          }
+        }
+
+        if (!foundKey) {
+          if (norm.includes('сонтра') || norm.includes('sontra')) foundKey = 'Son Tra';
+          else if (norm.includes('нгухань') || norm.includes('nguhanh')) foundKey = 'Ngu Hanh Son';
+          else if (norm.includes('хайчау') || norm.includes('haichau')) foundKey = 'Hai Chau';
+          else if (norm.includes('миан') || norm.includes('мюан') || norm.includes('майан') || norm.includes('myan')) foundKey = 'My An';
+          else if (norm.includes('микхе') || norm.includes('мюкхе') || norm.includes('майкхе') || norm.includes('mykhe')) foundKey = 'My Khe';
+          else if (norm.includes('камле') || norm.includes('camle')) foundKey = 'Cam Le';
+          else if (norm.includes('тханькхе') || norm.includes('thanhkhe')) foundKey = 'Thanh Khe';
+          else if (norm.includes('лиен') || norm.includes('lienchieu')) foundKey = 'Lien Chieu';
+        }
+
+        if (foundKey && DISTRICT_ALIASES[foundKey]) {
+          DISTRICT_ALIASES[foundKey].forEach(a => expanded.add(a));
+        } else {
+          expanded.add(trimmed);
+        }
+      });
+      return Array.from(expanded);
+    }
 
     const PROPERTY_TYPES = [
       { id: 'studio', label: 'Студия' },
@@ -2173,7 +2246,7 @@
           page,
           page_size: 15,
           search_text: activeFilter.search_text,
-          districts: activeFilter.districts,
+          districts: expandDistrictAliases(activeFilter.districts),
           property_types: activeFilter.property_types,
           price_min: activeFilter.price_min,
           price_max: activeFilter.price_max,
@@ -3217,7 +3290,11 @@
         badge.style.display = 'inline-block';
         badge.textContent = count;
         appliedBar.style.display = 'flex';
-        document.getElementById('appliedFiltersText').textContent = `Активно фильтров: ${count}`;
+        let filterDesc = `Активно фильтров: ${count}`;
+        if (activeFilter.districts && activeFilter.districts.length > 0) {
+          filterDesc = `Район: ${activeFilter.districts.join(', ')} • Фильтров: ${count}`;
+        }
+        document.getElementById('appliedFiltersText').textContent = filterDesc;
       } else {
         badge.style.display = 'none';
         appliedBar.style.display = 'none';
@@ -3236,6 +3313,11 @@
 
       document.getElementById('searchInput').value = '';
       document.getElementById('btnClearSearch').style.display = 'none';
+
+      // Сброс активного чипса быстрых районов на "Все районы"
+      document.querySelectorAll('#quickDistrictsBar .quick-chip').forEach(c => {
+        c.classList.toggle('active', c.getAttribute('data-district') === 'any');
+      });
 
       // Сброс в модалке
       document.getElementById('fDistrictAny').checked = true;
@@ -3277,6 +3359,18 @@
       } else {
         activeFilter.districts = Array.from(document.querySelectorAll('input[name="fDistrict"]:checked')).map(c => c.value);
       }
+
+      // Синхронизация быстрых чипсов вверху экрана
+      document.querySelectorAll('#quickDistrictsBar .quick-chip').forEach(c => {
+        const d = c.getAttribute('data-district');
+        if (activeFilter.districts.length === 0) {
+          c.classList.toggle('active', d === 'any');
+        } else if (activeFilter.districts.length === 1) {
+          c.classList.toggle('active', d.toLowerCase() === activeFilter.districts[0].toLowerCase());
+        } else {
+          c.classList.remove('active');
+        }
+      });
 
       // Сбор типов
       if (document.getElementById('fTypeAny').checked) {
@@ -3331,7 +3425,7 @@
       try {
         await apiPost('/subscriptions-create', {
           label: label,
-          districts: activeFilter.districts,
+          districts: expandDistrictAliases(activeFilter.districts),
           property_types: activeFilter.property_types,
           price_min: activeFilter.price_min,
           price_max: activeFilter.price_max,
@@ -3587,9 +3681,27 @@
 
     let finalDistrict = rawDistrict;
     if (rawDistrict) {
-      const normD = rawDistrict.toLowerCase().replace(/[\s_]+/g, '');
-      const found = DISTRICTS.find(d => d.id.toLowerCase().replace(/[\s_]+/g, '') === normD || d.label.toLowerCase().replace(/[\s_]+/g, '') === normD);
-      if (found) finalDistrict = found.id;
+      const normD = rawDistrict.toLowerCase().replace(/[\s_/-]+/g, '');
+      let matchedKey = Object.keys(DISTRICT_ALIASES).find(k => k.toLowerCase().replace(/[\s_/-]+/g, '') === normD);
+      if (!matchedKey) {
+        for (const [k, aliases] of Object.entries(DISTRICT_ALIASES)) {
+          if (aliases.some(a => a.toLowerCase().replace(/[\s_/-]+/g, '') === normD)) {
+            matchedKey = k;
+            break;
+          }
+        }
+      }
+      if (!matchedKey) {
+        if (normD.includes('сонтра') || normD.includes('sontra')) matchedKey = 'Son Tra';
+        else if (normD.includes('нгухань') || normD.includes('nguhanh')) matchedKey = 'Ngu Hanh Son';
+        else if (normD.includes('хайчау') || normD.includes('haichau')) matchedKey = 'Hai Chau';
+        else if (normD.includes('миан') || normD.includes('мюан') || normD.includes('майан') || normD.includes('myan')) matchedKey = 'My An';
+        else if (normD.includes('микхе') || normD.includes('мюкхе') || normD.includes('майкхе') || normD.includes('mykhe')) matchedKey = 'My Khe';
+        else if (normD.includes('камле') || normD.includes('camle')) matchedKey = 'Cam Le';
+        else if (normD.includes('тханькхе') || normD.includes('thanhkhe')) matchedKey = 'Thanh Khe';
+        else if (normD.includes('лиен') || normD.includes('lienchieu')) matchedKey = 'Lien Chieu';
+      }
+      if (matchedKey) finalDistrict = matchedKey;
     }
 
     let hasPresetFilters = false;
