@@ -754,6 +754,84 @@
       background: #000;
     }
 
+    .gallery-video-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+    }
+
+    .card-video-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .video-play-overlay-badge {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.65);
+      border: 2px solid rgba(255, 255, 255, 0.85);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      z-index: 4;
+    }
+
+    .video-play-overlay-badge svg {
+      width: 24px;
+      height: 24px;
+      margin-left: 3px;
+      fill: currentColor;
+    }
+
+    .video-play-overlay-badge.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, -50%) scale(0.85);
+    }
+
+    .card-video-play-icon {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1.5px solid rgba(255, 255, 255, 0.85);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .card-video-play-icon svg {
+      width: 18px;
+      height: 18px;
+      margin-left: 2px;
+      fill: currentColor;
+    }
+
     .gallery-counter {
       position: absolute;
       top: 12px;
@@ -2367,8 +2445,16 @@
             vidEl.playsInline = true;
             vidEl.preload = 'metadata';
             wrapper.insertBefore(vidEl, phEl.nextSibling);
+            if (!wrapper.querySelector('.card-video-play-icon')) {
+              wrapper.insertAdjacentHTML('beforeend', `
+                <div class="card-video-play-icon">
+                  <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+                </div>
+              `);
+            }
           }
-          vidEl.src = url;
+          const itemObj = listings.find(l => String(l.id) === String(itemId));
+          setupVideoCover(vidEl, url, itemObj);
           vidEl.onloadeddata = () => { phEl.style.display = 'none'; vidEl.style.display = 'block'; };
           vidEl.onerror = () => { const span = phEl.querySelector('span'); if (span) span.textContent = 'Ошибка медиа'; };
         } else if (imgEl) {
@@ -2650,14 +2736,19 @@
           if (isVid) {
             const vid = document.createElement('video');
             vid.className = 'card-photo-img';
-            vid.src = directUrl;
             vid.muted = true;
             vid.loop = true;
             vid.playsInline = true;
             vid.preload = 'metadata';
+            setupVideoCover(vid, directUrl, item);
             vid.onloadeddata = () => { if (phEl) phEl.style.display = 'none'; vid.style.display = 'block'; };
             vid.onerror = () => { if (phEl) phEl.style.display = 'flex'; };
             wrapper.appendChild(vid);
+            wrapper.insertAdjacentHTML('beforeend', `
+              <div class="card-video-play-icon">
+                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+              </div>
+            `);
           } else {
             const img = document.createElement('img');
             img.className = 'card-photo-img';
@@ -2671,11 +2762,30 @@
           getListingPhotoUrl(m, true).then(url => {
             const phEl = wrapper.querySelector(`#ph-${item.id}`);
             if (url) {
-              const img = document.createElement('img');
-              img.className = 'card-photo-img';
-              img.src = url;
-              img.onload = () => { if (phEl) phEl.style.display = 'none'; };
-              wrapper.appendChild(img);
+              const urlIsVid = url.endsWith('.mp4') || url.includes('/videos/');
+              if (urlIsVid) {
+                const vid = document.createElement('video');
+                vid.className = 'card-photo-img';
+                vid.muted = true;
+                vid.loop = true;
+                vid.playsInline = true;
+                vid.preload = 'metadata';
+                setupVideoCover(vid, url, item);
+                vid.onloadeddata = () => { if (phEl) phEl.style.display = 'none'; vid.style.display = 'block'; };
+                vid.onerror = () => { if (phEl) phEl.style.display = 'flex'; };
+                wrapper.appendChild(vid);
+                wrapper.insertAdjacentHTML('beforeend', `
+                  <div class="card-video-play-icon">
+                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+                  </div>
+                `);
+              } else {
+                const img = document.createElement('img');
+                img.className = 'card-photo-img';
+                img.src = url;
+                img.onload = () => { if (phEl) phEl.style.display = 'none'; };
+                wrapper.appendChild(img);
+              }
             }
           });
         }
@@ -2692,7 +2802,19 @@
 
           if (directUrl) {
             if (isVid) {
-              slide.innerHTML = `<video class="card-photo-img" src="${directUrl}" muted loop playsinline preload="${idx === 0 ? 'metadata' : 'none'}"></video>`;
+              const vid = document.createElement('video');
+              vid.className = 'card-photo-img';
+              vid.muted = true;
+              vid.loop = true;
+              vid.playsInline = true;
+              vid.preload = idx === 0 ? 'metadata' : 'none';
+              setupVideoCover(vid, directUrl, item);
+              slide.appendChild(vid);
+              slide.insertAdjacentHTML('beforeend', `
+                <div class="card-video-play-icon">
+                  <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+                </div>
+              `);
             } else {
               slide.innerHTML = `<img class="card-photo-img" src="${directUrl}" alt="Фото ${idx + 1}" loading="${idx === 0 ? 'eager' : 'lazy'}">`;
             }
@@ -2700,7 +2822,25 @@
             slide.innerHTML = `<div class="card-photo-placeholder" style="color:#fff;"><span>Загрузка...</span></div>`;
             getListingPhotoUrl(m, idx === 0).then(url => {
               if (url) {
-                slide.innerHTML = `<img class="card-photo-img" src="${url}" alt="Фото ${idx + 1}" loading="lazy">`;
+                const urlIsVid = url.endsWith('.mp4') || url.includes('/videos/');
+                if (urlIsVid) {
+                  slide.innerHTML = '';
+                  const vid = document.createElement('video');
+                  vid.className = 'card-photo-img';
+                  vid.muted = true;
+                  vid.loop = true;
+                  vid.playsInline = true;
+                  vid.preload = idx === 0 ? 'metadata' : 'none';
+                  setupVideoCover(vid, url, item);
+                  slide.appendChild(vid);
+                  slide.insertAdjacentHTML('beforeend', `
+                    <div class="card-video-play-icon">
+                      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+                    </div>
+                  `);
+                } else {
+                  slide.innerHTML = `<img class="card-photo-img" src="${url}" alt="Фото ${idx + 1}" loading="lazy">`;
+                }
               }
             });
           }
@@ -2833,6 +2973,56 @@
 
     function formatNumber(num) {
       return Number(num).toLocaleString('ru-RU');
+    }
+
+    // --- ХЕЛПЕРЫ ДЛЯ ВИДЕО И ОБЛОЖЕК (POSTER) ---
+    function formatVideoUrl(url) {
+      if (!url || typeof url !== 'string') return url;
+      // Добавляем директиву таймкода #t=0.001 для автоматической отрисовки браузером 1-го кадра
+      if (!url.includes('#t=') && (url.endsWith('.mp4') || url.includes('/videos/'))) {
+        return `${url}#t=0.001`;
+      }
+      return url;
+    }
+
+    function findListingCoverPhotoId(item) {
+      if (!item) return null;
+      // 1. Проверяем photo_file_id или photo_url, если это не видео
+      const primary = item.photo_file_id || item.photo_url;
+      if (primary && typeof primary === 'string' && !primary.endsWith('.mp4') && !primary.includes('/videos/')) {
+        return primary;
+      }
+      // 2. Ищем первое не-видео фото в массиве photos
+      if (item.photos) {
+        const photoList = parsePhotosArray(item.photos);
+        for (const p of photoList) {
+          if (p && typeof p === 'string' && !p.endsWith('.mp4') && !p.includes('/videos/')) {
+            return p;
+          }
+        }
+      }
+      return null;
+    }
+
+    function setupVideoCover(videoEl, videoUrl, item) {
+      if (!videoEl) return;
+      if (videoUrl) {
+        videoEl.src = formatVideoUrl(videoUrl);
+      }
+      // Проверяем, есть ли фото для постера
+      const coverPhotoId = findListingCoverPhotoId(item);
+      if (coverPhotoId) {
+        const cached = getCachedPhotoUrl(coverPhotoId);
+        if (cached) {
+          videoEl.poster = cached;
+        } else {
+          getListingPhotoUrl(coverPhotoId, true).then(url => {
+            if (url && videoEl) {
+              videoEl.poster = url;
+            }
+          });
+        }
+      }
     }
 
     // --- 6. ДЕТАЛЬНЫЙ ЭКРАН ОБЪЯВЛЕНИЯ И НАВИГАЦИЯ ---
@@ -3243,7 +3433,22 @@
                 }
               }
               if (isVid) {
-                slide.innerHTML = `<video class="gallery-video" src="${url}" controls playsinline preload="metadata"></video>`;
+                slide.innerHTML = `
+                  <div class="gallery-video-wrapper">
+                    <video class="gallery-video" controls playsinline preload="metadata"></video>
+                    <div class="video-play-overlay-badge">
+                      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+                    </div>
+                  </div>
+                `;
+                const vid = slide.querySelector('video.gallery-video');
+                const badge = slide.querySelector('.video-play-overlay-badge');
+                setupVideoCover(vid, url, item);
+                if (vid && badge) {
+                  vid.onplay = () => badge.classList.add('hidden');
+                  vid.onpause = () => badge.classList.remove('hidden');
+                  vid.onended = () => badge.classList.remove('hidden');
+                }
               } else {
                 slide.innerHTML = `<img class="gallery-img" src="${url}" alt="Фото ${idx + 1}" loading="lazy">`;
               }
@@ -3418,8 +3623,10 @@
         if (zoomReset) zoomReset.style.display = 'none';
 
         box.innerHTML = `
-          <video class="lightbox-video" src="${item.url}" controls autoplay playsinline preload="auto"></video>
+          <video class="lightbox-video" controls autoplay playsinline preload="auto"></video>
         `;
+        const lVideo = box.querySelector('video.lightbox-video');
+        setupVideoCover(lVideo, item.url, currentDetailListing);
       } else {
         if (zoomIn) zoomIn.style.display = 'flex';
         if (zoomOut) zoomOut.style.display = 'flex';
