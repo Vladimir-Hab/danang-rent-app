@@ -2956,7 +2956,7 @@
           ${item.street ? `<span class="tag-chip">ул. ${item.street}</span>` : ''}
           ${item.district ? `<span class="tag-chip">${item.district}</span>` : ''}
           ${item.property_type ? `<span class="tag-chip">${typeLabel}</span>` : ''}
-          ${item.google_maps_url ? `<span class="tag-chip" style="color: #007aff;">🗺️ Карта</span>` : ''}
+          ${(item.google_maps_url || item.street || item.district) ? `<span class="tag-chip" style="color: #007aff;">🗺️ Карта</span>` : ''}
           ${item.contact_in_text || item.sender_username ? `<span class="tag-chip">Есть контакт</span>` : ''}
         </div>
       `;
@@ -3407,17 +3407,24 @@
       setEl('detailRooms', item.rooms ? `${item.rooms} комн.` : '—');
       setEl('detailResale', item.is_resale ? 'Пересдача' : 'Аренда');
       let displayText = item.raw_text || 'Нет описания';
-      // Очистка от рекламы чужих каналов и групп
+      // Очистка от рекламы чужих каналов, групп и служебных кнопок перехода
       displayText = displayText.replace(/(?:Channel for more options|Telegram[- ]?(?:канал|группа)|WhatsApp[- ]?группа|Channel|Group)[^\n]*/gi, '');
       displayText = displayText.replace(/https?:\/\/(?:chat\.whatsapp\.com|t\.me\/(?:joinchat|\+|c\/))\S+/gi, '');
+      displayText = displayText.replace(/👉\s*<a\s+href="[^"]*">.*?<\/a>/gis, '');
+      displayText = displayText.replace(/👉\s*📲\s*[^\n]+/gi, '');
       displayText = displayText.replace(/\n{3,}/g, '\n\n').trim();
       setEl('detailRawText', displayText || 'Нет описания');
 
       const mapBox = document.getElementById('detailMapBox');
       const btnMap = document.getElementById('btnDetailMap');
       if (mapBox && btnMap) {
-        if (item.google_maps_url) {
-          btnMap.href = item.google_maps_url;
+        let mapUrl = item.google_maps_url;
+        if (!mapUrl && (item.street || item.district)) {
+          const q = [item.street, item.district, 'Da Nang Vietnam'].filter(Boolean).join(', ');
+          mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+        }
+        if (mapUrl) {
+          btnMap.href = mapUrl;
           mapBox.style.display = 'block';
         } else {
           mapBox.style.display = 'none';
