@@ -1713,6 +1713,7 @@
     .state-box-icon { font-size: 40px; margin-bottom: 8px; }
     .state-box-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
     .state-box-desc { font-size: 13px; color: var(--hint-color); max-width: 280px; margin: 0 auto; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -1869,8 +1870,8 @@
       </div>
 
       <div class="detail-body">
-                <div class="detail-price" id="detailPrice">$400 / мес</div>
-        <div class="detail-title" id="detailTitle">Студия в My Khe</div>
+        <div class="detail-price" id="detailPrice">Загрузка...</div>
+        <div class="detail-title" id="detailTitle">Загрузка объявления...</div>
 
         <div class="detail-params-grid">
           <div class="param-box">
@@ -2525,8 +2526,21 @@
         hasMoreListings = Boolean(res.has_more);
 
         if (!append) {
-          listings = items;
+          if (currentDetailListing && currentDetailListing.id && !items.some(it => String(it.id) === String(currentDetailListing.id))) {
+            listings = [currentDetailListing, ...items];
+          } else {
+            listings = items;
+          }
           renderFeed(items, false);
+
+          if (targetOpeningListingId) {
+            const foundInFeed = items.find(it => String(it.id) === String(targetOpeningListingId));
+            if (foundInFeed && (!currentDetailListing || !currentDetailListing.raw_text)) {
+              currentDetailListing = foundInFeed;
+              const feedPhotos = parsePhotosArray(foundInFeed.photos, foundInFeed.photo_file_id || foundInFeed.photo_url);
+              renderDetailData(foundInFeed, feedPhotos);
+            }
+          }
         } else {
           // Исключаем возможные дубликаты
           const existingIds = new Set(listings.map(l => String(l.id)));
@@ -3028,6 +3042,7 @@
     // --- 6. ДЕТАЛЬНЫЙ ЭКРАН ОБЪЯВЛЕНИЯ И НАВИГАЦИЯ ---
     let currentDetailListing = null;
     let lightboxNoticeTimer = null;
+    let targetOpeningListingId = null;
 
     // Универсальный хелпер распознавания свайпа
     function detectSwipeDirection(dx, dy, options = {}) {
@@ -3136,8 +3151,21 @@
     async function fetchDetailInBackground(listingId, fromLightbox = false) {
       try {
         const detail = await apiPost('/listing-detail', { listing_id: listingId });
-        if (detail && detail.id && currentDetailListing && String(currentDetailListing.id) === String(listingId)) {
+        const isOpen = document.getElementById('detailOverlay')?.classList.contains('active');
+        const matchesTarget = (currentDetailListing && String(currentDetailListing.id) === String(listingId)) ||
+                              (targetOpeningListingId && String(targetOpeningListingId) === String(listingId));
+
+        if (detail && detail.id && matchesTarget && isOpen) {
           currentDetailListing = detail;
+          const existIdx = listings.findIndex(l => String(l.id) === String(detail.id));
+          if (existIdx !== -1) {
+            listings[existIdx] = { ...listings[existIdx], ...detail };
+          } else {
+            listings.unshift(detail);
+          }
+          const curIdx = listings.findIndex(l => String(l.id) === String(detail.id));
+          updateDetailNavCounter(curIdx, listings.length);
+
           const allPhotos = parsePhotosArray(detail.photos, detail.photo_file_id);
           if (detail.video_url && !allPhotos.includes(detail.video_url)) {
             allPhotos.push(detail.video_url);
@@ -3154,6 +3182,12 @@
         }
       } catch (e) {
         console.warn('Ошибка загрузки деталей:', e);
+        if (targetOpeningListingId && String(targetOpeningListingId) === String(listingId) && (!currentDetailListing || !currentDetailListing.raw_text)) {
+          const titleEl = document.getElementById('detailTitle');
+          if (titleEl) titleEl.textContent = 'Объявление не найдено или снято';
+          const rawTextEl = document.getElementById('detailRawText');
+          if (rawTextEl) rawTextEl.textContent = 'Не удалось загрузить данные объявления. Возможно, оно было удалено автором или сдано.';
+        }
       }
     }
 
@@ -3278,7 +3312,33 @@
       maybePrefetchNextPage();
     }
 
+    function renderDetailLoadingState(listingId) {
+      const setEl = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+      };
+      setEl('detailPrice', 'Загрузка...');
+      setEl('detailTitle', 'Загрузка объявления...');
+      setEl('detailDistrict', '—');
+      setEl('detailStreet', '—');
+      setEl('detailType', '—');
+      setEl('detailRooms', '—');
+      setEl('detailResale', '—');
+      setEl('detailRawText', 'Загружаем актуальные данные объявления...');
+      const mapBox = document.getElementById('detailMapBox');
+      if (mapBox) mapBox.style.display = 'none';
+      const slider = document.getElementById('gallerySlider');
+      const dots = document.getElementById('galleryDots');
+      const counter = document.getElementById('galleryCounter');
+      const btnExpand = document.getElementById('btnOpenGalleryFullscreen');
+      if (slider) slider.innerHTML = `<div class="gallery-slide"><div class="card-photo-placeholder" style="color:#fff;"><svg style="width:28px;height:28px;animation:spin 1s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path></svg><span style="margin-top:8px;">Загрузка фото...</span></div></div>`;
+      if (dots) dots.innerHTML = '';
+      if (counter) counter.style.display = 'none';
+      if (btnExpand) btnExpand.style.display = 'none';
+    }
+
     async function openDetailScreen(listingId) {
+      targetOpeningListingId = String(listingId);
       const overlay = document.getElementById('detailOverlay');
       const scrollArea = document.getElementById('detailScrollArea');
       if (scrollArea) scrollArea.scrollTop = 0;
@@ -3308,6 +3368,9 @@
           });
         }
         renderDetailData(localItem, localPhotos);
+      } else {
+        currentDetailListing = { id: listingId };
+        renderDetailLoadingState(listingId);
       }
 
       fetchDetailInBackground(listingId, false);
@@ -3342,6 +3405,7 @@
       setEl('detailStreet', item.street ? `ул. ${item.street}` : 'Не указана');
       setEl('detailType', typeLabel);
       setEl('detailRooms', item.rooms ? `${item.rooms} комн.` : '—');
+      setEl('detailResale', item.is_resale ? 'Пересдача' : 'Аренда');
       let displayText = item.raw_text || 'Нет описания';
       // Очистка от рекламы чужих каналов и групп
       displayText = displayText.replace(/(?:Channel for more options|Telegram[- ]?(?:канал|группа)|WhatsApp[- ]?группа|Channel|Group)[^\n]*/gi, '');
@@ -3514,6 +3578,7 @@
 
     function closeDetailScreen() {
       if (isLightboxOpen) closeLightbox();
+      targetOpeningListingId = null;
       document.getElementById('detailOverlay').classList.remove('active');
       updateTelegramBackButton();
     }
@@ -4599,7 +4664,10 @@
       }
     }
     if (listingIdParam) {
-      setTimeout(() => openDetailScreen(parseInt(listingIdParam, 10)), 300);
+      const parsedId = parseInt(listingIdParam, 10);
+      if (!isNaN(parsedId)) {
+        openDetailScreen(parsedId);
+      }
     }
   </script>
 </body>
