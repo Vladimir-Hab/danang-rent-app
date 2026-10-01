@@ -660,12 +660,48 @@
       touch-action: manipulation;
     }
 
+    .detail-nav-counter {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--hint-color);
+      background: var(--bg-color);
+      padding: 4px 10px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      white-space: nowrap;
+      user-select: none;
+    }
+
     .detail-scroll-area {
       flex: 1;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       display: flex;
       flex-direction: column;
+      transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease-out;
+      will-change: transform, opacity;
+    }
+
+    .detail-slide-out-left {
+      transform: translateX(-25%);
+      opacity: 0.25;
+    }
+
+    .detail-slide-out-right {
+      transform: translateX(25%);
+      opacity: 0.25;
+    }
+
+    .detail-slide-in-right {
+      transform: translateX(25%);
+      opacity: 0.25;
+      transition: none !important;
+    }
+
+    .detail-slide-in-left {
+      transform: translateX(-25%);
+      opacity: 0.25;
+      transition: none !important;
     }
 
     .detail-gallery {
@@ -897,6 +933,83 @@
       justify-content: center;
       position: relative;
       touch-action: none;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease-out;
+      will-change: transform, opacity;
+    }
+
+    .lightbox-slide-out-left {
+      transform: translateX(-35%);
+      opacity: 0.2;
+    }
+
+    .lightbox-slide-out-right {
+      transform: translateX(35%);
+      opacity: 0.2;
+    }
+
+    .lightbox-slide-in-right {
+      transform: translateX(35%);
+      opacity: 0.2;
+      transition: none !important;
+    }
+
+    .lightbox-slide-in-left {
+      transform: translateX(-35%);
+      opacity: 0.2;
+      transition: none !important;
+    }
+
+    /* Оверлей-плашка переключения объявления в полноэкранном режиме */
+    .lightbox-listing-notice {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      background: rgba(20, 20, 24, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      color: #ffffff;
+      padding: 16px 24px;
+      border-radius: 18px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      text-align: center;
+      z-index: 60;
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.25s ease;
+      max-width: 86%;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+    }
+
+    .lightbox-listing-notice.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .lln-dir {
+      font-size: 13px;
+      font-weight: 700;
+      color: #30d158;
+      letter-spacing: 0.3px;
+      margin-bottom: 6px;
+    }
+
+    .lln-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .lln-sub {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.82);
+      font-weight: 500;
     }
 
     .lightbox-img {
@@ -1452,7 +1565,7 @@
       font-size: 13px;
       font-weight: 500;
       box-shadow: 0 4px 14px rgba(0,0,0,0.2);
-      z-index: 300;
+      z-index: 1000;
       opacity: 0;
       transition: all 0.25s ease;
       pointer-events: none;
@@ -1461,6 +1574,49 @@
     .toast-popup.show {
       transform: translateX(-50%) translateY(0);
       opacity: 1;
+    }
+
+    /* Подсказка при первом открытии объявления */
+    .swipe-hint-pill {
+      position: fixed;
+      bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(18, 18, 20, 0.88);
+      color: #ffffff;
+      padding: 9px 18px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      z-index: 250;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
+      white-space: nowrap;
+      max-width: 90%;
+      text-align: center;
+    }
+
+    .swipe-hint-pill.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .detail-scroll-area,
+      .lightbox-content-box,
+      .lightbox-listing-notice,
+      .swipe-hint-pill {
+        transition: none !important;
+        animation: none !important;
+        transform: none !important;
+      }
     }
 
     /* Пустые состояния и ошибки */
@@ -1509,11 +1665,14 @@
     <button class="quick-chip" data-district="Cam Le">Cam Le</button>
   </div>
 
-  <!-- Панель активного фильтра с кнопкой сохранения в подписки -->
+  <!-- Панель активного фильтра с кнопкой сохранения в подписки и быстрым сбросом -->
   <div class="applied-filters-bar" id="appliedFiltersBar">
-    <span id="appliedFiltersText">Применены фильтры</span>
+    <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; min-width: 0;">
+      <span id="appliedFiltersText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Применены фильтры</span>
+      <button id="btnClearAppliedBar" type="button" style="background: rgba(255, 59, 48, 0.1); border: 1px solid rgba(255, 59, 48, 0.25); color: var(--danger-color, #ff3b30); font-size: 11px; font-weight: 700; border-radius: 8px; cursor: pointer; padding: 2px 7px; white-space: nowrap;">✕ Сбросить</button>
+    </div>
     <button class="btn-save-search-pill" id="btnSaveCurrentSearch">
-      <span>⭐ Сохранить в подписки</span>
+      <span>⭐ В подписки</span>
     </button>
   </div>
 
@@ -1608,6 +1767,7 @@
       <button class="btn-nav-icon" id="btnCloseDetail">
         <span>← Назад</span>
       </button>
+      <span class="detail-nav-counter" id="detailNavCounter" style="display: none;">1 из 1</span>
       <button class="btn-nav-icon" id="btnShareListing">
         <span>Поделиться ↗</span>
       </button>
@@ -1663,6 +1823,11 @@
         <div class="form-title">Описание из чата:</div>
         <div class="detail-text-box" id="detailRawText">Текст объявления...</div>
       </div>
+    </div>
+
+    <!-- Подсказка о свайпе при первом открытии -->
+    <div class="swipe-hint-pill" id="swipeHintPill">
+      <span>👈 Свайпайте влево/вправо — следующее/предыдущее объявление 👉</span>
     </div>
 
     <div class="detail-bottom-bar">
@@ -1772,6 +1937,12 @@
     <div class="lightbox-stage" id="lightboxStage">
       <div class="lightbox-content-box" id="lightboxContentBox">
         <!-- img with zoom/pan or video dynamically rendered -->
+      </div>
+      <!-- Плашка уведомления о смене объявления -->
+      <div class="lightbox-listing-notice" id="lightboxListingNotice">
+        <div class="lln-dir" id="llnDir">→ Следующее объявление</div>
+        <div class="lln-title" id="llnTitle">Студия в My Khe</div>
+        <div class="lln-sub" id="llnSub">$400 / мес • 2 из 15</div>
       </div>
     </div>
 
@@ -2615,21 +2786,259 @@
       return Number(num).toLocaleString('ru-RU');
     }
 
-    // --- 6. ДЕТАЛЬНЫЙ ЭКРАН ОБЪЯВЛЕНИЯ ---
+    // --- 6. ДЕТАЛЬНЫЙ ЭКРАН ОБЪЯВЛЕНИЯ И НАВИГАЦИЯ ---
     let currentDetailListing = null;
+    let lightboxNoticeTimer = null;
+
+    // Универсальный хелпер распознавания свайпа
+    function detectSwipeDirection(dx, dy, options = {}) {
+      const minDistance = options.minDistance || 60;
+      const ratio = options.ratio || 1.3;
+      const absX = Math.abs(dx);
+      const absY = Math.abs(dy);
+
+      if (absX >= minDistance && absX >= absY * ratio) {
+        return dx < 0 ? 'left' : 'right';
+      }
+
+      if (options.detectVertical && absY >= minDistance && absY >= absX * ratio) {
+        return dy < 0 ? 'up' : 'down';
+      }
+
+      return null;
+    }
+
+    function getCurrentListingIndex() {
+      if (!currentDetailListing || !listings || listings.length === 0) return -1;
+      const curId = String(currentDetailListing.id);
+      return listings.findIndex(l => String(l.id) === curId);
+    }
+
+    function updateDetailNavCounter(index, total) {
+      const counterEl = document.getElementById('detailNavCounter');
+      if (!counterEl) return;
+      if (index >= 0 && total > 0) {
+        counterEl.textContent = `${index + 1} из ${total}`;
+        counterEl.style.display = 'inline-block';
+      } else {
+        counterEl.style.display = 'none';
+      }
+    }
+
+    function checkAndShowSwipeHint() {
+      try {
+        const shown = localStorage.getItem('danang_swipe_hint_seen');
+        if (!shown) {
+          localStorage.setItem('danang_swipe_hint_seen', '1');
+          const hint = document.getElementById('swipeHintPill');
+          if (hint) {
+            setTimeout(() => {
+              hint.classList.add('show');
+              setTimeout(() => {
+                hint.classList.remove('show');
+              }, 3500);
+            }, 600);
+          }
+        }
+      } catch (e) {}
+    }
+
+    function showLightboxListingNotice(direction, item, index, total) {
+      const notice = document.getElementById('lightboxListingNotice');
+      const dirEl = document.getElementById('llnDir');
+      const titleEl = document.getElementById('llnTitle');
+      const subEl = document.getElementById('llnSub');
+      if (!notice || !dirEl || !titleEl || !subEl) return;
+
+      const isNext = direction === 'next';
+      dirEl.textContent = isNext ? '→ Следующее объявление' : '← Предыдущее объявление';
+      dirEl.style.color = isNext ? '#30d158' : '#0a84ff';
+
+      const typeLabel = item.property_type ? (PROPERTY_TYPES.find(p => p.id === item.property_type)?.label || item.property_type) : 'Жильё';
+      const loc = item.district ? ` • ${item.district}` : '';
+      titleEl.textContent = `${typeLabel}${loc}`;
+
+      const curr = item.currency === 'VND' ? '₫' : '$';
+      const period = item.price_period === 'day' ? '/сут' : (item.price_period === 'year' ? '/год' : '/мес');
+      const priceStr = item.price ? `${formatNumber(item.price)} ${curr} ${period}` : 'Цена по запросу';
+      const countStr = (index >= 0 && total > 0) ? ` • ${index + 1} из ${total}` : '';
+      subEl.textContent = `${priceStr}${countStr}`;
+
+      notice.classList.add('show');
+
+      if (lightboxNoticeTimer) clearTimeout(lightboxNoticeTimer);
+      lightboxNoticeTimer = setTimeout(() => {
+        notice.classList.remove('show');
+      }, 1500);
+    }
+
+    function animateLightboxTransition(direction, updateCallback) {
+      const box = document.getElementById('lightboxContentBox');
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!box || prefersReduced) {
+        if (typeof updateCallback === 'function') updateCallback();
+        return;
+      }
+
+      const outClass = direction === 'next' ? 'lightbox-slide-out-left' : 'lightbox-slide-out-right';
+      const inClass = direction === 'next' ? 'lightbox-slide-in-right' : 'lightbox-slide-in-left';
+
+      box.classList.add(outClass);
+
+      setTimeout(() => {
+        box.classList.remove(outClass);
+        if (typeof updateCallback === 'function') updateCallback();
+        box.classList.add(inClass);
+        void box.offsetHeight; // trigger reflow
+        box.classList.remove(inClass);
+      }, 140);
+    }
+
+    async function fetchDetailInBackground(listingId, fromLightbox = false) {
+      try {
+        const detail = await apiPost('/listing-detail', { listing_id: listingId });
+        if (detail && detail.id && currentDetailListing && String(currentDetailListing.id) === String(listingId)) {
+          currentDetailListing = detail;
+          const allPhotos = parsePhotosArray(detail.photos, detail.photo_file_id);
+          if (detail.video_url && !allPhotos.includes(detail.video_url)) {
+            allPhotos.push(detail.video_url);
+          }
+          if (Array.isArray(detail.videos)) {
+            detail.videos.forEach(v => {
+              if (v && !allPhotos.includes(v)) allPhotos.push(v);
+            });
+          }
+          renderDetailData(detail, allPhotos);
+          if (fromLightbox && isLightboxOpen) {
+            renderLightboxSlide();
+          }
+        }
+      } catch (e) {
+        console.warn('Ошибка загрузки деталей:', e);
+      }
+    }
+
+    function goToNextListing(fromLightbox = false) {
+      const currentIndex = getCurrentListingIndex();
+      if (currentIndex === -1) return false;
+
+      if (currentIndex >= listings.length - 1) {
+        showToast('Это последнее объявление');
+        triggerHaptic('error');
+        return false;
+      }
+
+      const nextListing = listings[currentIndex + 1];
+      switchToListing(nextListing, 'next', fromLightbox);
+      return true;
+    }
+
+    function goToPrevListing(fromLightbox = false) {
+      const currentIndex = getCurrentListingIndex();
+      if (currentIndex === -1) return false;
+
+      if (currentIndex <= 0) {
+        showToast('Это первое объявление');
+        triggerHaptic('error');
+        return false;
+      }
+
+      const prevListing = listings[currentIndex - 1];
+      switchToListing(prevListing, 'prev', fromLightbox);
+      return true;
+    }
+
+    async function switchToListing(targetItem, direction = 'next', fromLightbox = false) {
+      if (!targetItem) return;
+
+      triggerHaptic('light');
+
+      const currentIndex = listings.findIndex(l => String(l.id) === String(targetItem.id));
+      updateDetailNavCounter(currentIndex, listings.length);
+
+      let localPhotos = parsePhotosArray(targetItem.photos, targetItem.photo_file_id || targetItem.photo_url);
+      if (targetItem.video_url && !localPhotos.includes(targetItem.video_url)) {
+        localPhotos.push(targetItem.video_url);
+      }
+      if (Array.isArray(targetItem.videos)) {
+        targetItem.videos.forEach(v => {
+          if (v && !localPhotos.includes(v)) localPhotos.push(v);
+        });
+      }
+
+      const scrollArea = document.getElementById('detailScrollArea');
+      if (scrollArea) scrollArea.scrollTop = 0;
+      const gallerySlider = document.getElementById('gallerySlider');
+      if (gallerySlider) gallerySlider.scrollLeft = 0;
+      resetZoom(false);
+
+      if (fromLightbox && isLightboxOpen) {
+        showLightboxListingNotice(direction, targetItem, currentIndex, listings.length);
+
+        if (localPhotos.length === 0) {
+          closeLightbox();
+          showToast('В этом объявлении нет фото');
+          renderDetailData(targetItem, []);
+        } else {
+          animateLightboxTransition(direction, () => {
+            renderDetailData(targetItem, localPhotos);
+            lightboxCurrentIndex = 0;
+            resetZoom(false);
+            renderLightboxSlide();
+          });
+        }
+
+        fetchDetailInBackground(targetItem.id, fromLightbox);
+      } else {
+        const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        if (!prefersReduced && scrollArea) {
+          const outClass = direction === 'next' ? 'detail-slide-out-left' : 'detail-slide-out-right';
+          const inClass = direction === 'next' ? 'detail-slide-in-right' : 'detail-slide-in-left';
+
+          scrollArea.classList.add(outClass);
+
+          setTimeout(() => {
+            scrollArea.classList.remove(outClass);
+            scrollArea.scrollTop = 0;
+            if (gallerySlider) gallerySlider.scrollLeft = 0;
+
+            renderDetailData(targetItem, localPhotos);
+
+            scrollArea.classList.add(inClass);
+            void scrollArea.offsetHeight; // trigger reflow
+            scrollArea.classList.remove(inClass);
+
+            fetchDetailInBackground(targetItem.id, false);
+          }, 120);
+        } else {
+          renderDetailData(targetItem, localPhotos);
+          fetchDetailInBackground(targetItem.id, false);
+        }
+      }
+    }
 
     async function openDetailScreen(listingId) {
       const overlay = document.getElementById('detailOverlay');
       const scrollArea = document.getElementById('detailScrollArea');
       if (scrollArea) scrollArea.scrollTop = 0;
+      const gallerySlider = document.getElementById('gallerySlider');
+      if (gallerySlider) gallerySlider.scrollLeft = 0;
+      resetZoom(false);
+
       overlay.scrollTop = 0;
       overlay.classList.add('active');
       if (tg?.BackButton) tg.BackButton.show();
 
+      const idx = listings.findIndex(l => String(l.id) === String(listingId));
+      updateDetailNavCounter(idx, listings.length);
+      checkAndShowSwipeHint();
+
       // Быстрый предпросмотр из кэша (сразу со всеми известными фото и видео)
       let localItem = listings.find(l => String(l.id) === String(listingId));
       if (localItem) {
-        const localPhotos = parsePhotosArray(localItem.photos, localItem.photo_file_id);
+        currentDetailListing = localItem;
+        const localPhotos = parsePhotosArray(localItem.photos, localItem.photo_file_id || localItem.photo_url);
         if (localItem.video_url && !localPhotos.includes(localItem.video_url)) {
           localPhotos.push(localItem.video_url);
         }
@@ -2641,24 +3050,7 @@
         renderDetailData(localItem, localPhotos);
       }
 
-      try {
-        const detail = await apiPost('/listing-detail', { listing_id: listingId });
-        if (detail && detail.id) {
-          currentDetailListing = detail;
-          const allPhotos = parsePhotosArray(detail.photos, detail.photo_file_id || localItem?.photo_file_id);
-          if (detail.video_url && !allPhotos.includes(detail.video_url)) {
-            allPhotos.push(detail.video_url);
-          }
-          if (Array.isArray(detail.videos)) {
-            detail.videos.forEach(v => {
-              if (v && !allPhotos.includes(v)) allPhotos.push(v);
-            });
-          }
-          renderDetailData(detail, allPhotos);
-        }
-      } catch (e) {
-        console.error('Ошибка загрузки деталей:', e);
-      }
+      fetchDetailInBackground(listingId, false);
     }
 
     function renderDetailData(item, photoIds) {
@@ -3040,6 +3432,7 @@
     function initLightboxGestures() {
       const stage = document.getElementById('lightboxStage');
       if (!stage) return;
+      let isVideoTouch = false;
 
       stage.addEventListener('touchstart', (e) => {
         if (e.touches.length === 2) {
@@ -3051,6 +3444,7 @@
           pinchStartScale = lightboxScale;
         } else if (e.touches.length === 1) {
           isPinching = false;
+          isVideoTouch = Boolean(e.target && (e.target.closest('video') || e.target.tagName?.toLowerCase() === 'video'));
           panTouchStartX = e.touches[0].clientX;
           panTouchStartY = e.touches[0].clientY;
           panTouchLastX = panTouchStartX;
@@ -3122,15 +3516,26 @@
             lastTapTimestamp = now;
           }
 
-          if (lightboxScale <= 1.05) {
+          if (lightboxScale <= 1.05 && !isVideoTouch) {
             const totalDx = panTouchLastX - panTouchStartX;
             const totalDy = panTouchLastY - panTouchStartY;
 
-            if (Math.abs(totalDx) > 45 && Math.abs(totalDx) > Math.abs(totalDy) * 1.3) {
-              if (totalDx < -45) nextLightboxSlide();
-              else prevLightboxSlide();
-            } else if (totalDy > 80 && totalDy > Math.abs(totalDx) * 1.5) {
+            const dir = detectSwipeDirection(totalDx, totalDy, { minDistance: 50, ratio: 1.3, detectVertical: true });
+
+            if (dir === 'down') {
               closeLightbox();
+            } else if (dir === 'left') {
+              if (lightboxCurrentIndex >= currentDetailMediaList.length - 1) {
+                goToNextListing(true);
+              } else {
+                nextLightboxSlide();
+              }
+            } else if (dir === 'right') {
+              if (lightboxCurrentIndex <= 0) {
+                goToPrevListing(true);
+              } else {
+                prevLightboxSlide();
+              }
             }
           } else {
             clampPan();
@@ -3163,14 +3568,131 @@
       document.getElementById('btnLightboxNext')?.addEventListener('click', nextLightboxSlide);
 
       window.addEventListener('keydown', (e) => {
-        if (!isLightboxOpen) return;
-        if (e.key === 'Escape') closeLightbox();
-        else if (e.key === 'ArrowLeft') prevLightboxSlide();
-        else if (e.key === 'ArrowRight') nextLightboxSlide();
-        else if (e.key === '+' || e.key === '=') setZoom(lightboxScale + 0.5, true);
-        else if (e.key === '-' || e.key === '_') setZoom(lightboxScale - 0.5, true);
-        else if (e.key === '0') resetZoom(true);
+        if (isLightboxOpen) {
+          if (e.key === 'Escape') closeLightbox();
+          else if (e.key === 'ArrowLeft') {
+            if (lightboxCurrentIndex <= 0) {
+              goToPrevListing(true);
+            } else {
+              prevLightboxSlide();
+            }
+          } else if (e.key === 'ArrowRight') {
+            if (lightboxCurrentIndex >= currentDetailMediaList.length - 1) {
+              goToNextListing(true);
+            } else {
+              nextLightboxSlide();
+            }
+          } else if (e.key === '+' || e.key === '=') setZoom(lightboxScale + 0.5, true);
+          else if (e.key === '-' || e.key === '_') setZoom(lightboxScale - 0.5, true);
+          else if (e.key === '0') resetZoom(true);
+        } else if (document.getElementById('detailOverlay')?.classList.contains('active')) {
+          if (e.key === 'Escape') {
+            closeDetailScreen();
+          } else if (e.key === 'ArrowLeft') {
+            goToPrevListing(false);
+          } else if (e.key === 'ArrowRight') {
+            goToNextListing(false);
+          }
+        }
       });
+    }
+
+    // Жесты свайпа по фотогалерее детального экрана
+    function initDetailGalleryGestures() {
+      const slider = document.getElementById('gallerySlider');
+      if (!slider) return;
+
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let wasAtStart = false;
+      let wasAtEnd = false;
+      let isVideoTouch = false;
+
+      slider.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return;
+        if (e.target && (e.target.closest('video') || e.target.tagName?.toLowerCase() === 'video')) {
+          isVideoTouch = true;
+          return;
+        }
+        isVideoTouch = false;
+
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+
+        const slideWidth = slider.clientWidth || 1;
+        const totalSlides = slider.querySelectorAll('.gallery-slide').length || 1;
+        const currentIdx = Math.round(slider.scrollLeft / slideWidth);
+
+        wasAtStart = (currentIdx <= 0 || slider.scrollLeft <= 5);
+        wasAtEnd = (currentIdx >= totalSlides - 1 || slider.scrollLeft + slideWidth >= slider.scrollWidth - 10);
+      }, { passive: true });
+
+      slider.addEventListener('touchend', (e) => {
+        if (isVideoTouch || e.changedTouches.length !== 1) return;
+
+        const touch = e.changedTouches[0];
+        const dx = touch.clientX - touchStartX;
+        const dy = touch.clientY - touchStartY;
+
+        const dir = detectSwipeDirection(dx, dy, { minDistance: 60, ratio: 1.3 });
+
+        if (dir === 'left' && wasAtEnd) {
+          goToNextListing(false);
+        } else if (dir === 'right' && wasAtStart) {
+          goToPrevListing(false);
+        }
+      }, { passive: true });
+    }
+
+    // Жесты свайпа по телу описания детального экрана
+    function initDetailBodyGestures() {
+      const scrollArea = document.getElementById('detailScrollArea');
+      if (!scrollArea) return;
+
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let isValidStart = false;
+
+      scrollArea.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) {
+          isValidStart = false;
+          return;
+        }
+
+        // Не перехватываем касания на галерее (у неё свой обработчик)
+        if (e.target.closest('#detailGallery')) {
+          isValidStart = false;
+          return;
+        }
+
+        // Не перехватываем касания на интерактивных элементах
+        if (e.target.closest('button, a, input, select, textarea, video, .chips-select-grid, .segmented-tabs, .card-slider, #btnDetailMap, .interactive-el')) {
+          isValidStart = false;
+          return;
+        }
+
+        isValidStart = true;
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+      }, { passive: true });
+
+      scrollArea.addEventListener('touchend', (e) => {
+        if (!isValidStart || e.changedTouches.length !== 1) return;
+        isValidStart = false;
+
+        const touch = e.changedTouches[0];
+        const dx = touch.clientX - touchStartX;
+        const dy = touch.clientY - touchStartY;
+
+        const dir = detectSwipeDirection(dx, dy, { minDistance: 70, ratio: 1.5 });
+        if (dir === 'left') {
+          goToNextListing(false);
+        } else if (dir === 'right') {
+          goToPrevListing(false);
+        }
+      }, { passive: true });
     }
 
     // --- 7. ПОИСК И ФИЛЬТРЫ ---
@@ -3206,15 +3728,37 @@
       // Быстрые районы в верхней плашке
       document.querySelectorAll('#quickDistrictsBar .quick-chip').forEach(chip => {
         chip.addEventListener('click', () => {
+          const d = chip.getAttribute('data-district');
+
+          if (d === 'any') {
+            resetAllFilters();
+            triggerHaptic('light');
+            return;
+          }
+
           document.querySelectorAll('#quickDistrictsBar .quick-chip').forEach(c => c.classList.remove('active'));
           chip.classList.add('active');
-          const d = chip.getAttribute('data-district');
-          activeFilter.districts = d === 'any' ? [] : [d];
+
+          // Сбрасываем ограничения цен, чтобы район сразу показал ВСЕ объявления без зависших фильтров
+          activeFilter.price_min = null;
+          activeFilter.price_max = null;
+          const minEl = document.getElementById('fPriceMin');
+          const maxEl = document.getElementById('fPriceMax');
+          if (minEl) minEl.value = '';
+          if (maxEl) maxEl.value = '';
+
+          activeFilter.districts = [d];
           currentPage = 1;
           updateFilterBadge();
           fetchListings(1, false);
           triggerHaptic('light');
         });
+      });
+
+      // Кнопка быстрого сброса на плашке активных фильтров
+      document.getElementById('btnClearAppliedBar')?.addEventListener('click', () => {
+        resetAllFilters();
+        triggerHaptic('light');
       });
 
       // Поиск по Enter
@@ -3641,6 +4185,8 @@
     initCardPhotoObserver();
     initFiltersUI();
     initLightboxGestures();
+    initDetailGalleryGestures();
+    initDetailBodyGestures();
 
     // Deep-linking: чтение переданных фильтров (район, тип, цена от/до)
     const urlParams = new URLSearchParams(window.location.search);
@@ -3676,8 +4222,11 @@
 
     const rawDistrict = urlParams.get('district') || startParamObj['district'] || startParamObj['dist'] || startParamObj['d'];
     const paramType = urlParams.get('type') || startParamObj['type'] || startParamObj['t'];
-    const cleanMin = parsePriceParam(urlParams.get('min') || startParamObj['min']);
-    const cleanMax = parsePriceParam(urlParams.get('max') || startParamObj['max']);
+
+    // Цены считываем только при явном указании в URL браузера (?min=...&max=...),
+    // но НЕ из startapp ссылок постов Telegram, чтобы при переходе не висело ограничение по цене!
+    const cleanMin = parsePriceParam(urlParams.get('min'));
+    const cleanMax = parsePriceParam(urlParams.get('max'));
 
     let finalDistrict = rawDistrict;
     if (rawDistrict) {
@@ -3755,16 +4304,23 @@
       }
     }
 
-    // Deep-linking: вкладка подписок (?tab=subscriptions или #subscriptions)
-    const startTab = urlParams.get('tab') || (window.location.hash === '#subscriptions' ? 'subscriptions' : null);
+    // Deep-linking: вкладка подписок (?tab=subscriptions или #subscriptions или startapp=subs)
+    const startTab = urlParams.get('tab') || (window.location.hash === '#subscriptions' ? 'subscriptions' : (rawStartParam === 'subs' || rawStartParam === 'subscriptions' ? 'subscriptions' : null));
     if (startTab === 'subscriptions') {
       switchTab('viewSubscriptions');
     } else {
       fetchListings(1, false);
     }
 
-    // Deep-linking: конкретное объявление (#listing_123 или ?listing=123)
-    const listingIdParam = urlParams.get('listing') || (window.location.hash.startsWith('#listing_') ? window.location.hash.replace('#listing_', '') : null);
+    // Deep-linking: конкретное объявление (#listing_123 или ?listing=123 или startapp=listing_123 или числовой ID)
+    let listingIdParam = urlParams.get('listing') || (window.location.hash.startsWith('#listing_') ? window.location.hash.replace('#listing_', '') : null);
+    if (!listingIdParam && rawStartParam) {
+      if (rawStartParam.startsWith('listing_')) {
+        listingIdParam = rawStartParam.replace('listing_', '');
+      } else if (/^\d+$/.test(rawStartParam)) {
+        listingIdParam = rawStartParam;
+      }
+    }
     if (listingIdParam) {
       setTimeout(() => openDetailScreen(parseInt(listingIdParam, 10)), 300);
     }
