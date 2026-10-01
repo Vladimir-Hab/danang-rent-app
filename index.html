@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>Аренда жилья в Дананге</title>
   <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -2400,12 +2403,16 @@
     }
 
     // --- 5. КАТАЛОГ И БЕСКОНЕЧНЫЙ СКРОЛЛ ---
+    let isNextPageLoading = false;
+    let nextPagePromise = null;
+
     async function fetchListings(page = 1, append = false) {
-      if (isLoading) return;
+      if (isLoading) return [];
       isLoading = true;
+      currentPage = page;
 
       const sentinel = document.getElementById('infiniteScrollSentinel');
-      sentinel.textContent = 'Загрузка объявлений...';
+      if (sentinel) sentinel.textContent = 'Загрузка объявлений...';
 
       // При новом запросе сбрасываем старую очередь фото
       if (!append) {
@@ -2435,13 +2442,26 @@
           listings = items;
           renderFeed(items, false);
         } else {
-          listings = listings.concat(items);
-          renderFeed(items, true);
+          // Исключаем возможные дубликаты
+          const existingIds = new Set(listings.map(l => String(l.id)));
+          const uniqueItems = items.filter(it => !existingIds.has(String(it.id)));
+          listings = listings.concat(uniqueItems);
+          renderFeed(uniqueItems, true);
         }
 
-        sentinel.textContent = !hasMoreListings
-          ? (listings.length > 0 ? 'Вы посмотрели все объявления' : '')
-          : '';
+        // Обновляем счетчик объявления, если открыт детальный экран
+        const curIdx = getCurrentListingIndex();
+        if (curIdx !== -1) {
+          updateDetailNavCounter(curIdx, listings.length);
+        }
+
+        if (sentinel) {
+          sentinel.textContent = !hasMoreListings
+            ? (listings.length > 0 ? 'Вы посмотрели все объявления' : '')
+            : '';
+        }
+
+        return items;
       } catch (err) {
         console.error(err);
         if (!append) {
@@ -2454,9 +2474,38 @@
             </div>
           `;
         }
-        sentinel.textContent = '';
+        if (sentinel) sentinel.textContent = '';
+        return [];
       } finally {
         isLoading = false;
+      }
+    }
+
+    async function loadNextPage() {
+      if (!hasMoreListings) return [];
+      if (isNextPageLoading && nextPagePromise) {
+        return nextPagePromise;
+      }
+
+      isNextPageLoading = true;
+      nextPagePromise = (async () => {
+        try {
+          const nextPage = currentPage + 1;
+          const items = await fetchListings(nextPage, true);
+          return items || [];
+        } finally {
+          isNextPageLoading = false;
+          nextPagePromise = null;
+        }
+      })();
+
+      return nextPagePromise;
+    }
+
+    function maybePrefetchNextPage() {
+      const currentIndex = getCurrentListingIndex();
+      if (currentIndex !== -1 && currentIndex >= listings.length - 3 && hasMoreListings && !isNextPageLoading && !isLoading) {
+        loadNextPage();
       }
     }
 
@@ -2918,18 +2967,38 @@
       }
     }
 
-    function goToNextListing(fromLightbox = false) {
-      const currentIndex = getCurrentListingIndex();
+    async function goToNextListing(fromLightbox = false) {
+      let currentIndex = getCurrentListingIndex();
       if (currentIndex === -1) return false;
 
+      // Если дошли до конца уже загруженного списка
       if (currentIndex >= listings.length - 1) {
-        showToast('Это последнее объявление');
-        triggerHaptic('error');
-        return false;
+        if (!hasMoreListings) {
+          showToast('Это последнее объявление');
+          triggerHaptic('error');
+          return false;
+        }
+
+        // Есть ещё страницы на сервере — загружаем следующую
+        showToast('Загрузка следующих...');
+        triggerHaptic('light');
+
+        await loadNextPage();
+        currentIndex = getCurrentListingIndex();
+
+        // Если и после загрузки нет следующего объявления
+        if (currentIndex === -1 || currentIndex >= listings.length - 1) {
+          showToast('Это последнее объявление');
+          triggerHaptic('error');
+          return false;
+        }
       }
 
       const nextListing = listings[currentIndex + 1];
       switchToListing(nextListing, 'next', fromLightbox);
+
+      // Фоновая подгрузка при приближении к концу списка
+      maybePrefetchNextPage();
       return true;
     }
 
@@ -3016,6 +3085,7 @@
           fetchDetailInBackground(targetItem.id, false);
         }
       }
+      maybePrefetchNextPage();
     }
 
     async function openDetailScreen(listingId) {
@@ -3051,6 +3121,7 @@
       }
 
       fetchDetailInBackground(listingId, false);
+      maybePrefetchNextPage();
     }
 
     function renderDetailData(item, photoIds) {
@@ -4173,9 +4244,8 @@
 
     // --- 10. БЕСКОНЕЧНЫЙ СКРОЛЛ ЧЕРЕЗ INTERSECTION OBSERVER ---
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && hasMoreListings && !isLoading) {
-        currentPage++;
-        fetchListings(currentPage, true);
+      if (entries[0].isIntersecting && hasMoreListings && !isLoading && !isNextPageLoading) {
+        loadNextPage();
       }
     }, { rootMargin: '200px' });
 
