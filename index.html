@@ -3407,11 +3407,18 @@
       setEl('detailRooms', item.rooms ? `${item.rooms} комн.` : '—');
       setEl('detailResale', item.is_resale ? 'Пересдача' : 'Аренда');
       let displayText = item.raw_text || 'Нет описания';
-      // Очистка от рекламы чужих каналов, групп и служебных кнопок перехода
+      // Очистка описания для карточки Mini App:
+      // Вверху карточки УЖЕ есть кнопка «Посмотреть точку на Google Maps», поэтому из текста скрываем все ссылки на карты и кнопки Mini App
+      displayText = displayText.replace(/🗺️[^\n]*\n?/gi, '');
+      displayText = displayText.replace(/👉\s*(?:<a\s+href="[^"]*">)?.*?📲[^\n]*(?:<\/a>)?/gis, '');
+      displayText = displayText.replace(/📲\s*[^\n]+/gi, '');
+      // Распаковываем ссылки в чистый текст и убираем HTML-теги
+      displayText = displayText.replace(/<a\s+href="[^"]*">(.*?)<\/a>/gi, '$1');
+      displayText = displayText.replace(/<\/?(?:b|strong|i|em|span|div)[^>]*>/gi, '');
+      displayText = displayText.replace(/https?:\/\/\S+/gi, '');
+      // Очистка от рекламы чужих каналов/групп
       displayText = displayText.replace(/(?:Channel for more options|Telegram[- ]?(?:канал|группа)|WhatsApp[- ]?группа|Channel|Group)[^\n]*/gi, '');
-      displayText = displayText.replace(/https?:\/\/(?:chat\.whatsapp\.com|t\.me\/(?:joinchat|\+|c\/))\S+/gi, '');
-      displayText = displayText.replace(/👉\s*<a\s+href="[^"]*">.*?<\/a>/gis, '');
-      displayText = displayText.replace(/👉\s*📲\s*[^\n]+/gi, '');
+      displayText = displayText.replace(/📍\s*Адрес:/gi, '📍 Локация:');
       displayText = displayText.replace(/\n{3,}/g, '\n\n').trim();
       setEl('detailRawText', displayText || 'Нет описания');
 
